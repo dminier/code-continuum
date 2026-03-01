@@ -107,4 +107,14 @@ tests/                  # Integration tests
 .devcontainer/          # Docker setup (Rust + Neo4j)
 ```
 
- 
+---
+
+## Motivation
+
+I work with many languages — Java, JavaScript, and Python in particular — but I am fairly new to Rust. I fully embrace VibeCoding 🙂 and my sincere apologies to seasoned Rust developers for anything that makes them cringe.
+
+That said, I deliberately chose Rust over Python for two reasons: raw speed, and the naturally smooth integration with Tree-Sitter.
+
+I was able to validate the approach on a real Java WebSphere Portal project in the context of a legacy migration. The **AST + Graph + Agentic** combo is remarkably powerful — the AI grasps the application architecture almost instantly. On the other side, AI is genuinely effective at writing Cypher queries, a task that would take a human an unreasonable amount of time. 😄
+
+The next frontier: **COBOL** — the king of legacies.
