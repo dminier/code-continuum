@@ -57,6 +57,13 @@ RETURN f.name, g.name
 | XML (WebSphere Portal) | `portlet.xml` `web.xml` | Specialized (servlet/portlet mappings) |
 | HTML | `.html` `.htm` | Indexed only (no extraction) |
 
+## Docs
+
+| | |
+|---|---|
+| [doc/SCHEMA.md](doc/SCHEMA.md) | Full Neo4j schema reference (nodes, relations, properties, query examples) |
+| [doc/SCHEMA_IA.md](doc/SCHEMA_IA.md) | Condensed Cypher cheatsheet — intended as AI agent knowledge base |
+
 ## Project structure
 
 ```
