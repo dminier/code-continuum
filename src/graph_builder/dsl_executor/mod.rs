@@ -3,6 +3,7 @@
 
 pub mod java;
 mod javascript_extractor;
+mod rust_extractor;
 
 // Résolution des dépendances
 pub mod dependency_resolver;
@@ -161,6 +162,10 @@ impl DslExecutor {
             }
             ExtractorType::Jsp => {
                 self.extract_jsp(source, &mut graph);
+            }
+            ExtractorType::Rust => {
+                let root = tree.root_node();
+                self.extract_rust(root, source, &mut graph);
             }
             ExtractorType::TreeSitter => {
                 // Future implémentation: extraction générique via DSL tree-sitter

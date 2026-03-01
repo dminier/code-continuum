@@ -23,7 +23,7 @@
 //!
 //! ```rust
 //! use std::path::Path;
-//! use code_continuum:code_continuum::dsl::DslRegistry;
+//! use code_continuum::semantic_graph::dsl::DslRegistry;
 //!
 //! // Détecter le langage d'un fichier
 //! let path = Path::new("src/main.rs");
@@ -62,6 +62,8 @@ pub enum ExtractorType {
     Xml,
     /// Extracteur JSP spécialisé (INCLUDES relations)
     Jsp,
+    /// Extracteur Rust spécialisé
+    Rust,
 }
 
 /// Spécification complète d'un langage de programmation supporté
@@ -78,7 +80,7 @@ pub enum ExtractorType {
 /// # Exemple
 ///
 /// ```rust,ignore
-/// use code_continuum:code_continuum::dsl::LanguageSpec;
+/// use code_continuum::semantic_graph::dsl::LanguageSpec;
 /// LanguageSpec {
 ///     name: "python",
 ///     extensions: &["py", "pyw"],
@@ -239,7 +241,7 @@ impl DslRegistry {
     ///
     /// # Exemple
     /// ```
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// let specs = DslRegistry::all_specs();
     /// for spec in specs {
     ///     println!("Langage: {}, Extensions: {:?}", spec.name, spec.extensions);
@@ -326,7 +328,7 @@ impl DslRegistry {
                 function_node_kind: "function_item",
                 function_name_field: "name",
                 file_name_patterns: &[],
-                extractor: ExtractorType::TreeSitter,
+                extractor: ExtractorType::Rust,
             },
         ]
     }
@@ -341,7 +343,7 @@ impl DslRegistry {
     ///
     /// # Exemple
     /// ```
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// if let Some(spec) = DslRegistry::get_spec("python") {
     ///     println!("Extensions Python: {:?}", spec.extensions);
     /// }
@@ -363,7 +365,7 @@ impl DslRegistry {
     ///
     /// # Exemple
     /// ```
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// if let Some(dsl) = DslRegistry::get_dsl("python") {
     ///     println!("DSL Python: {}", dsl);
     /// }
@@ -391,7 +393,7 @@ impl DslRegistry {
     ///
     /// # Exemple
     /// ```
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// let languages = DslRegistry::supported_languages();
     /// println!("Langages supportés: {}", languages.join(", "));
     /// // Affiche: "Langages supportés: python, javascript, html, xml, ..."
@@ -415,7 +417,7 @@ impl DslRegistry {
     /// # Exemple
     /// ```
     /// use tree_sitter::Parser;
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// if let Some(lang) = DslRegistry::get_tree_sitter_language("python") {
     ///     let mut parser = Parser::new();
     ///     parser.set_language(lang).unwrap();
@@ -438,7 +440,7 @@ impl DslRegistry {
     ///
     /// # Exemple
     /// ```
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// assert_eq!(DslRegistry::detect_language_from_extension("py"), Some("python"));
     /// assert_eq!(DslRegistry::detect_language_from_extension("tsx"), Some("javascript"));
     /// assert_eq!(DslRegistry::detect_language_from_extension("unknown"), None);
@@ -466,7 +468,7 @@ impl DslRegistry {
     /// # Exemple
     /// ```
     /// use std::path::Path;
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// let path = Path::new("/src/main.rs");
     /// assert_eq!(DslRegistry::detect_language_from_path(path), Some("rust"));
     /// let path = Path::new("/WEB-INF/portlet.xml");
@@ -502,7 +504,7 @@ impl DslRegistry {
     ///
     /// # Exemple
     /// ```
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// assert!(DslRegistry::is_supported("python"));
     /// assert!(DslRegistry::is_supported("java"));
     /// assert!(!DslRegistry::is_supported("cobol"));
@@ -525,7 +527,7 @@ impl DslRegistry {
     ///
     /// # Exemple
     /// ```
-    /// use code_continuum:code_continuum::dsl::DslRegistry;
+    /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// assert!(DslRegistry::has_specialized_extractor("java"));
     /// assert!(DslRegistry::has_specialized_extractor("xml"));
     /// ```
@@ -545,7 +547,7 @@ impl DslRegistry {
     ///
     /// # Exemple
     /// ```
-    /// use code_continuum:code_continuum::dsl::{DslRegistry, ExtractorType};
+    /// use code_continuum::semantic_graph::dsl::{DslRegistry, ExtractorType};
     /// assert_eq!(DslRegistry::get_extractor_type("java"), ExtractorType::Java);
     /// assert_eq!(DslRegistry::get_extractor_type("xml"), ExtractorType::Xml);
     /// ```

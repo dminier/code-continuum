@@ -31,3 +31,6 @@ mod extraction_jsp_transitive_includes;
 
 #[path = "extraction/jsp_imports.rs"]
 mod extraction_jsp_imports;
+
+#[path = "extraction/rust.rs"]
+mod extraction_rust;
