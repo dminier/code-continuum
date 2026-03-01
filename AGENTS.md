@@ -1,155 +1,268 @@
-# GEMINI.MD: AI Collaboration Guide
+# AGENTS.md — AI Collaboration Guide
 
-This document provides essential context for AI models interacting with this project. Adhering to these guidelines will ensure consistency and maintain code quality.
+This document provides all context an AI agent needs to work effectively on this project. Follow every guideline here to maintain code quality, test coverage, and schema consistency.
 
-## 1. Project Overview & Purpose
+---
 
-- **Primary Goal:** Static analysis tool that parses multi-language code (Java, JavaScript/TypeScript, JSP/WebSphere XML,...) with Tree-Sitter, builds a semantic graph with qualified identifiers, and exports it to Neo4j; an MCP server exposes HTTP endpoints so AI agents can query the graph without re-running analysis.
-- **Business Domain:** Developer tooling / code intelligence for dependency and call-graph analysis (RAG for code understanding).
+## 1. Project Overview
 
-## 2. Core Technologies & Stack
+- **Primary Goal:** Static analysis tool that parses multi-language codebases (Java, JavaScript/TypeScript, JSP, WebSphere XML) with Tree-Sitter, builds a semantic graph with qualified identifiers, and exports it to Neo4j. An MCP server exposes HTTP endpoints so AI agents can query the graph without re-running analysis.
+- **Business Domain:** Developer tooling / code intelligence — dependency graph, call graph, and RAG for code understanding.
+- **Pipeline:** `file discovery → AST extraction (Tree-Sitter) → unified semantic graph → Neo4j export → MCP HTTP API`
 
-- **Languages:** Rust (edition 2021) for the app and MCP server; Tree-Sitter grammars for Java, JavaScript/TypeScript, Python, Rust, HTML; test fixtures in Java/JavaScript/JSP/XML.
-- **Frameworks & Runtimes:** Tokio async runtime; tracing for structured logging; MCP server (custom Rust) for HTTP endpoints.
-- **Databases:** Neo4j 5.x (bolt://7687, browser 7474) as the knowledge graph store.
-- **Key Libraries/Dependencies:** tree-sitter and language packs, neo4rs for Neo4j, serde/serde_json, anyhow, regex, chrono, tracing + tracing-subscriber/appender.
-- **Package Manager(s):** Cargo (Rust).
+---
 
-## 3. Architectural Patterns
+## 2. Tech Stack
 
-- **Overall Architecture:** Monolithic Rust application with a pipeline: file discovery → AST extraction via Tree-Sitter → unified semantic graph → Neo4j export; optional MCP HTTP layer for agent access. Runs in a VS Code Dev Container with companion Neo4j and MCP services via docker-compose.
-- **Directory Structure Philosophy:**
-  - `/src`: Application code (CLI/main, analysis orchestrator, graph model/exporter, graph builder/extractors, Neo4j connectivity, MCP server, reporting, encoding utils).
-  - `/tests`: Integration tests organized by feature (extraction, Neo4j, debug) plus shared helpers in `common/`.
-  - `/doc`: French-first documentation (installation, commands, conception/architecture, schema, MCP server, deployment, tests, extractors).
-  - `/examples`: Sample codebases (Java/JS, JSP, WebSphere portal configs) for analysis.
-  - `/scripts`: Deployment helper scripts; docker-compose configs at root for production.
+| Layer | Technology |
+|---|---|
+| Language | Rust (edition 2021) |
+| Async runtime | Tokio (full features) |
+| Parser | Tree-Sitter + grammars: Java, JS/TS, Python, Rust, HTML |
+| Database | Neo4j 5.x — bolt://localhost:7687, browser http://localhost:7474 |
+| Neo4j client | neo4rs 0.7 |
+| Serialization | serde 1.0 + serde_json 1.0 |
+| Error handling | anyhow 1.0 |
+| Logging | tracing 0.1 + tracing-subscriber + tracing-appender |
+| Encoding | chardetng 0.1 + encoding_rs 0.8 |
+| Regex | regex 1.10 |
+| Package manager | Cargo |
+| Dev environment | VS Code Dev Container + docker-compose |
 
-## 4. Coding Conventions & Style Guide
+---
 
-- **Formatting:** Use `cargo fmt`; keep code clippy-clean (`cargo clippy --all-targets`). Docs are in French; new docs go under `doc/` with UPPERCASE names and must be linked from `doc/README.md`.
-- **Naming Conventions:** Rust defaults—snake_case for functions/variables/modules, PascalCase for types, SCREAMING_SNAKE_CASE for constants; qualified IDs for graph entities (`package.Class.method`).
-- **API Design:** CLI entry via `src/main.rs`/`cli` module; MCP server exposes endpoints like `execute_cypher`, `search_nodes`, `find_calls`, `analyze_dependencies` under `/api/mcp/` (JSON over HTTP).
-- **Error Handling:** Prefer `Result` with `?`; avoid `unwrap` in production paths; log meaningful errors before exit.
-- **Logging:** Use `tracing` with structured fields; default `info` level for CLI, `warn` for MCP stdio mode; keep `info` logs minimal and actionable, `debug` for flow details, `trace` only for deep parser debugging. Logs go to console and `.output/app.log`.
+## 3. Architecture & Key Files
 
-## 5. Key Files & Entrypoints
+### Module Map (`src/`)
 
-- **Main Entrypoint(s):** `src/main.rs` (CLI + MCP switch), orchestrating `analysis::executor::analyze_repository` after Neo4j connectivity check.
-- **Configuration:** `Cargo.toml` for dependencies; environment vars `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` (defaults to bolt://localhost:7687, neo4j/password); Dev Container/docker-compose define Neo4j and MCP services; `.output/` for logs.
-- **CI/CD Pipeline:** No CI config detected in repo; confirm before assuming automation.
+```
+src/
+├── main.rs                      # CLI entrypoint + MCP mode switch
+├── lib.rs
+├── analysis/
+│   ├── executor.rs              # analyze_repository() — top-level orchestrator
+│   └── mod.rs
+├── cli/                         # CLI argument parsing
+├── config/
+│   ├── mod.rs                   # Runtime configuration
+│   └── package_filter.rs
+├── encoding/                    # Multi-charset file reading
+├── file_discovery/              # Recursive file discovery + filtering
+├── graph_builder/
+│   ├── builder.rs               # Dispatch to per-language extractors
+│   ├── dsl_graph/
+│   │   ├── java.rs              # Java AST → graph DSL
+│   │   ├── javascript.rs        # JS/TS AST → graph DSL
+│   │   └── mod.rs
+│   └── dsl_executor/
+│       ├── javascript_extractor.rs
+│       ├── dependency_resolver.rs
+│       └── mod.rs
+├── semantic_graph/
+│   ├── semantic_graph.rs        # NodeKind, EdgeRelation enums — source of truth for schema
+│   ├── neo4j_exporter.rs        # Cypher generation for all node/edge types
+│   ├── dsl.rs
+│   └── mod.rs
+├── neo4j_connectivity/          # Connection management, health checks
+├── mcp/                         # MCP HTTP server (endpoints, handlers)
+├── reporting/                   # Analysis reports
+└── ui/                          # CLI progress/display utilities
+```
 
-## 6. Development & Testing Workflow
+### Critical Files
 
-- **Local Development Environment:** Open in VS Code Dev Container; build with `cargo build` (or `--release` for speed/production); run analysis with `cargo run -- <path>` (examples under `examples/backend/`).
-- **Testing:** `cargo test` runs unit + integration; category tests via `cargo test --test connection|calls|services|export|field_extraction|javascript|java_ast`; tests skip gracefully if Neo4j is unavailable. Use `-- --nocapture` for logs, `--test-threads=1` for sequential runs.
-- **CI/CD Process:** Not defined; assume manual workflows (run fmt, clippy, test before PR).
+| File | Purpose |
+|---|---|
+| `src/main.rs` | CLI + MCP mode entrypoint |
+| `src/analysis/executor.rs` | `analyze_repository()` — full pipeline |
+| `src/semantic_graph/semantic_graph.rs` | `NodeKind`, `EdgeRelation` enums — **schema definition** |
+| `src/semantic_graph/neo4j_exporter.rs` | Cypher export logic |
+| `doc/SCHEMA.md` | Human-readable schema reference |
+| `doc/SCHEMA_IA.md` | Compact Cypher reference for AI agents |
+| `examples/` | Test fixtures — single source of truth |
 
-## 7. 🔴🟢🔵 TDD Workflow (OBLIGATOIRE)
+### Environment Variables
 
-**Toute nouvelle fonctionnalité ou correction de bug DOIT suivre le cycle TDD Red-Green-Refactor.**
+| Variable | Default | Description |
+|---|---|---|
+| `NEO4J_URI` | `bolt://localhost:7687` | Neo4j Bolt URI |
+| `NEO4J_USER` | `neo4j` | Neo4j username |
+| `NEO4J_PASSWORD` | `password` | Neo4j password (dev only) |
 
-**🎯 PRIORITÉ : Tests E2E > Tests d'intégration > Tests unitaires**
+Logs are written to `.output/app.log`.
 
-Ce projet privilégie les **tests End-to-End (E2E)** car ils :
-- Valident le pipeline complet : fichier source → parsing → graph → **export Neo4j** → requête Cypher
-- Testent le comportement réel sur des fichiers concrets (`examples/`)
-- Vérifient que les données sont correctement persistées et requêtables dans Neo4j
-- Détectent les régressions sur toute la chaîne
+---
 
-**Structure des tests :**
+## 4. Coding Conventions
+
+### Formatting & Linting
+
+```bash
+cargo fmt                                        # Format all code
+cargo clippy --all-targets -- -D warnings        # Zero warnings policy
+```
+
+Both must pass before any commit. No exceptions.
+
+### Naming
+
+| Context | Convention | Example |
+|---|---|---|
+| Functions / variables / modules | `snake_case` | `analyze_repository` |
+| Types / structs / enums | `PascalCase` | `NodeKind`, `EdgeRelation` |
+| Constants | `SCREAMING_SNAKE_CASE` | `MAX_DEPTH` |
+| Graph node IDs | Qualified dot-notation | `com.example.ServiceA.doCall` |
+
+### Error Handling
+
+- Use `Result<T, E>` with `anyhow::Error` for fallible operations.
+- Propagate errors with `?`; never use `.unwrap()` in production code paths.
+- Log meaningful context before returning errors (e.g., file path, node ID).
+- MCP endpoint handlers must return structured JSON errors, never panic.
+
+### Logging
+
+| Level | When to use |
+|---|---|
+| `error!` | Unrecoverable failures |
+| `warn!` | Recoverable issues, skipped files |
+| `info!` | Key pipeline milestones (start, end, counts) — keep minimal |
+| `debug!` | Flow details, per-file events |
+| `trace!` | Deep parser / AST debugging |
+
+Use structured fields: `tracing::info!(file = %path, nodes = count, "Extraction complete")`.
+
+### Documentation
+
+- New docs go under `doc/` with `UPPERCASE_NAME.md` filenames.
+- All new doc files must be linked from `doc/README.md`.
+
+---
+
+## 5. TDD Workflow (MANDATORY)
+
+**Every new feature and every bug fix MUST follow the Red-Green-Refactor cycle.**
+
+### Priority Order
+
+```
+E2E tests  >  Integration tests  >  Unit tests
+```
+
+**Why E2E first?** E2E tests validate the complete pipeline:
+`source file → parsing → semantic graph → Neo4j export → Cypher query`
+
+They catch regressions across the entire chain and use real files from `examples/` as fixtures.
+
+Unit tests remain useful for pure functions and isolated utilities only.
+
+### Test Directory Structure
+
 ```
 tests/
-├── e2e/                 # Tests End-to-End (PRIORITAIRE)
-│   └── *.rs            # Pipeline complet avec Neo4j
-├── extraction/          # Tests d'intégration parsing
-├── neo4j/              # Tests connectivité Neo4j
-└── common/             # Helpers partagés
+├── e2e/                         # End-to-End: full pipeline against Neo4j (HIGHEST PRIORITY)
+│   └── *.rs
+├── extraction/                  # Integration: AST parsing + graph building
+│   ├── javascript.rs
+│   ├── java_ast.rs
+│   ├── java_imports.rs
+│   ├── jsp_transitive_includes.rs
+│   ├── field_extraction.rs
+│   ├── servlet_mapping.rs
+│   └── ...
+├── neo4j/                       # Integration: Neo4j export + Cypher queries
+│   ├── connection.rs
+│   ├── calls.rs
+│   ├── services.rs
+│   └── export.rs
+├── debug/                       # Debug/exploratory tests
+└── common/                      # Shared helpers and fixtures helpers
 ```
 
-Les tests unitaires restent utiles pour les fonctions pures et les utilitaires isolés.
+---
 
-### Étape 1: 🔴 RED — Écrire le test d'abord
-1. **Comprendre le besoin** : Avant d'écrire du code, clarifier le comportement attendu
-2. **Créer le fichier de test** :
-   - Tests unitaires : dans le même fichier avec `#[cfg(test)] mod tests { ... }`
-   - Tests d'intégration : dans `/tests/` selon la catégorie (extraction, neo4j, etc.)
-3. **Écrire un test qui ÉCHOUE** : Le test doit compiler mais échouer à l'exécution
-4. **Vérifier l'échec** : Exécuter `cargo test <nom_du_test>` et confirmer l'échec attendu
+### Step 1: RED — Write the failing test first
+
+1. Clarify the exact expected behavior before writing any implementation code.
+2. Place the test in the right directory:
+   - Unit tests: `#[cfg(test)] mod tests { ... }` in the same `.rs` file.
+   - Integration/E2E tests: new file under `tests/` in the appropriate subdirectory.
+3. Write a test that **compiles but fails at runtime**.
+4. Confirm the failure:
 
 ```bash
-# Exemple: vérifier que le test échoue
-cargo test test_nouvelle_fonctionnalite -- --nocapture
+cargo test test_my_new_feature -- --nocapture
 ```
 
-### Étape 2: 🟢 GREEN — Faire passer le test
-1. **Implémenter le minimum** : Écrire UNIQUEMENT le code nécessaire pour faire passer le test
-2. **Pas d'optimisation prématurée** : Le code peut être "laid" à cette étape
-3. **Vérifier le succès** : `cargo test <nom_du_test>` doit passer
+The test must fail for the right reason (behavior not yet implemented, not a compile error).
+
+---
+
+### Step 2: GREEN — Make the test pass
+
+1. Write **only the minimum code** to make the test pass.
+2. No premature optimization. The code can be ugly at this stage.
+3. Verify:
 
 ```bash
-# Le test doit maintenant passer
-cargo test test_nouvelle_fonctionnalite
+cargo test test_my_new_feature
 ```
 
-### Étape 3: 🔵 REFACTOR — Améliorer le code
-1. **Nettoyer** : Améliorer la lisibilité, supprimer les duplications
-2. **Garder les tests verts** : Après chaque modification, relancer les tests
-3. **Vérifier la qualité** : `cargo fmt && cargo clippy --all-targets`
+---
+
+### Step 3: REFACTOR — Improve without breaking
+
+1. Clean up duplication, improve readability.
+2. After every change, re-run tests to stay green.
+3. Final check:
 
 ```bash
-# Cycle de refactoring
-cargo fmt && cargo clippy --all-targets && cargo test
+cargo fmt && cargo clippy --all-targets -- -D warnings && cargo test
 ```
 
-### 📁 Fixtures de Test : Le Dossier `examples/`
+---
 
-**RÈGLE ABSOLUE : Tous les tests d'intégration DOIVENT utiliser les fichiers du dossier `examples/`.**
+### Test Fixtures: The `examples/` Directory
 
-Le dossier `examples/` est la **source unique de vérité** pour les fixtures de test. Il contient des exemples réalistes représentant les cas d'usage du projet.
+**ABSOLUTE RULE: All integration and E2E tests MUST use files from `examples/` as fixtures.**
 
-#### Structure des Examples
+`examples/` is the single source of truth for test fixtures. Never create ad-hoc source files inside `tests/`.
+
+#### Structure
 
 ```
 examples/
-├── backend/                    # Code serveur
-│   ├── java/                   # Java: classes, services, héritage, appels statiques
-│   └── javascript/             # JS backend: services, pipelines transitifs
-├── frontend/                   # Code client
-│   ├── html/                   # Templates HTML
-│   └── javascript/             # JS frontend: composants, API calls
-├── web_templates/              # Templates web dynamiques
-│   ├── *.jsp, *.jspx          # JSP/JSPX templates
-│   ├── WEB-INF/               # Configuration web Java
-│   └── common/                # Includes partagés
-├── config/                     # Fichiers de configuration
-│   └── *.xml                  # XML (portlet, app config)
-└── websphere-portal/          # Cas d'usage WebSphere Portal
-    ├── java/                  # Code Java Portal
-    └── *.xml                  # Configs Portal
+├── backend/
+│   ├── java/                    # Java: classes, services, inheritance, static calls
+│   └── javascript/              # JS backend: services, transitive pipelines
+├── frontend/
+│   └── javascript/              # JS frontend: components, API calls
+├── web_templates/               # JSP/JSPX templates, WEB-INF configs
+├── config/                      # XML configuration files
+└── websphere-portal/            # WebSphere Portal: Java + XML configs
 ```
 
-#### Mapping Cas d'Usage → Fichiers Examples
+#### Fixture Mapping
 
-| Cas d'Usage | Fichiers Examples | Tests Associés |
-|-------------|-------------------|----------------|
-| Extraction classes Java | `backend/java/*.java` | `extraction/java_*` |
-| Héritage/interfaces | `backend/java/Base*.java, Derived*.java` | `extraction/inheritance` |
-| Appels de méthodes | `backend/java/Service*.java` | `neo4j/calls` |
-| Appels transitifs | `backend/java/TransitiveChain.java` | `neo4j/transitive` |
-| Appels statiques | `backend/java/StaticCallsExample.java` | `extraction/static_calls` |
+| Use Case | Fixture Files | Related Tests |
+|---|---|---|
+| Java class extraction | `backend/java/*.java` | `extraction/java_ast` |
+| Inheritance / interfaces | `backend/java/Base*.java`, `Derived*.java` | `extraction/java_ast` |
+| Method calls | `backend/java/Service*.java` | `neo4j/calls` |
+| Transitive calls | `backend/java/TransitiveChain.java` | `neo4j/transitive` |
+| Static calls | `backend/java/StaticCallsExample.java` | `extraction/java_ast` |
 | JavaScript modules | `backend/javascript/*.js` | `extraction/javascript` |
-| JSP/Templates | `web_templates/*.jsp` | `extraction/jsp` |
-| Config XML | `config/*.xml, websphere-portal/*.xml` | `extraction/xml` |
+| JSP templates | `web_templates/*.jsp` | `extraction/jsp_*` |
+| XML configs | `config/*.xml`, `websphere-portal/*.xml` | `extraction/servlet_*` |
 
-#### Règles pour les Fixtures
+#### Fixture Rules
 
-1. **Pas de fixtures dans `/tests/`** : Jamais de code source de test dans le dossier tests
-2. **Examples = Documentation vivante** : Les examples doivent être du code valide et lisible
-3. **Un fichier = Un concept** : Chaque fichier example doit illustrer un concept précis
-4. **Nommage explicite** : `TransitiveChain.java`, `StaticCallsExample.java`, etc.
+1. **No source files inside `tests/`** — all fixtures live in `examples/`.
+2. **Examples = living documentation** — every example file must be valid, readable code.
+3. **One file = one concept** — `TransitiveChain.java`, `StaticCallsExample.java`, etc.
+4. **Descriptive naming** — file name must make the tested concept obvious.
 
-#### Template de Test avec Examples
+#### Test Template
 
 ```rust
 #[cfg(test)]
@@ -157,74 +270,199 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    /// Test pour [DESCRIPTION DU COMPORTEMENT ATTENDU]
-    /// 
+    /// Tests [EXPECTED BEHAVIOR DESCRIPTION]
+    ///
     /// Fixture: examples/backend/java/ServiceA.java
-    /// Scénario:
-    /// - Given: [CONDITIONS INITIALES]
-    /// - When: [ACTION TESTÉE]
-    /// - Then: [RÉSULTAT ATTENDU]
+    /// Scenario:
+    ///   Given: [initial conditions]
+    ///   When:  [action under test]
+    ///   Then:  [expected result]
     #[test]
-    fn test_nom_descriptif() {
-        // Arrange (Given) - Utiliser TOUJOURS examples/
-        let fixture_path = PathBuf::from("examples/backend/java/ServiceA.java");
-        assert!(fixture_path.exists(), "Fixture manquante: {:?}", fixture_path);
-        
+    fn test_descriptive_name() {
+        // Arrange (Given) — always use examples/
+        let fixture = PathBuf::from("examples/backend/java/ServiceA.java");
+        assert!(fixture.exists(), "Missing fixture: {:?}", fixture);
+
         // Act (When)
-        let result = fonction_a_tester(&fixture_path);
-        
+        let result = function_under_test(&fixture);
+
         // Assert (Then)
-        assert_eq!(result, expected);
+        assert_eq!(result, expected_value);
     }
 }
 ```
 
-### Règles TDD Strictes pour l'IA
+---
 
-| ❌ INTERDIT | ✅ OBLIGATOIRE |
-|------------|---------------|
-| Écrire du code sans test | Écrire le test AVANT l'implémentation |
-| Modifier du code existant sans test de régression | Ajouter un test qui capture le bug avant de corriger |
-| Implémenter plusieurs fonctionnalités à la fois | Un test = une fonctionnalité atomique |
-| Refactorer sans tests verts | Toujours avoir une suite de tests passante |
-| Supprimer des tests pour "faire passer" | Les tests définissent le contrat, pas l'inverse |
+### TDD Rules for AI Agents
 
-### Workflow TDD pour Corrections de Bug
+| FORBIDDEN | REQUIRED |
+|---|---|
+| Write implementation code before a test | Write the test BEFORE any implementation |
+| Modify existing code without a regression test | Add a test that captures the bug before fixing it |
+| Implement multiple features in one cycle | One test = one atomic behavior |
+| Refactor while tests are red | All tests must be green before refactoring |
+| Delete tests to make them pass | Tests define the contract — never remove them |
+| Create fixtures inside `tests/` | All fixtures go in `examples/` |
 
-1. **Reproduire** : Écrire un test qui reproduit le bug (🔴 RED)
-2. **Confirmer** : Le test doit échouer de la même manière que le bug
-3. **Corriger** : Implémenter la correction minimale (🟢 GREEN)
-4. **Valider** : Le test passe, le bug est corrigé
-5. **Régresser** : Le test protège contre les régressions futures
+---
 
-### Checklist Avant Commit
+### Bug Fix Workflow
+
+1. **Reproduce** — write a test that reproduces the bug (RED)
+2. **Confirm** — the test must fail in the same way as the reported bug
+3. **Fix** — implement the minimal fix (GREEN)
+4. **Verify** — the test passes, other tests still pass
+5. **Protect** — this test now guards against regressions
+
+---
+
+### Pre-Commit Checklist
 
 ```bash
-# 1. Tous les tests passent
+# 1. All tests pass
 cargo test
 
-# 2. Code formaté
+# 2. Code is formatted
 cargo fmt --check
 
-# 3. Pas de warnings clippy
+# 3. No clippy warnings
 cargo clippy --all-targets -- -D warnings
 
-# 4. Documentation à jour (si changement de schéma)
-# Vérifier SCHEMA.md et SCHEMA_IA.md
+# 4. If schema changed: verify SCHEMA.md and SCHEMA_IA.md are updated
 ```
 
-## 8. Specific Instructions for AI Collaboration
+All four checks must pass. No exceptions.
 
-- **Contribution Guidelines:** Run `cargo fmt`, `cargo clippy --all-targets`, and `cargo test` before submitting changes. Keep logging structured and concise. 
-  
-  **⚠️ SCHEMA MAINTENANCE CRITICAL:** Any change to Neo4j schema (node types, relations, properties) requires synchronized updates across THREE documents:
-  1. **Code source:** `src/code_continuum/semantic_graph.rs` (NodeKind, EdgeRelation enums) and `src/code_continuum/neo4j_exporter.rs` (Cypher export logic)
-  2. **Human documentation:** `doc/SCHEMA.md` (complete, detailed reference with examples)
-  3. **AI documentation:** `doc/SCHEMA_IA.md` (compact, patterns-focused reference for agent queries)
-  
-  All three must remain in sync. When any one changes, update the others immediately in the same commit.
+---
 
-- **Infrastructure (IaC):** Docker and docker-compose files affect runtime services (Neo4j, MCP); coordinate changes carefully. Dev Container is the expected environment.
-- **Security:** Do not commit secrets; Neo4j defaults (neo4j/password) are for dev only. Validate authentication/connection handling when touching MCP or Neo4j code.
-- **Dependencies:** Add Rust deps via `Cargo.toml`/`cargo add`; ensure reproducibility and review impact on parsing or graph schema.
-- **Commit Messages:** No explicit policy observed; using clear, concise messages (or Conventional Commits) is recommended until a policy is stated.
+## 6. Neo4j Schema Maintenance (CRITICAL)
+
+Any change to the Neo4j schema — new node label, new relation type, new property — requires **synchronized updates across exactly three files in the same commit**:
+
+| File | What to update |
+|---|---|
+| `src/semantic_graph/semantic_graph.rs` | `NodeKind` and `EdgeRelation` enums |
+| `src/semantic_graph/neo4j_exporter.rs` | Cypher generation for the new type |
+| `doc/SCHEMA.md` | Full human-readable documentation with examples |
+| `doc/SCHEMA_IA.md` | Compact Cypher patterns reference for AI agents |
+
+**All three must remain in sync. Never update one without the others.**
+
+### When This Applies
+
+- Adding a new `NodeKind` variant (new language construct)
+- Adding a new `EdgeRelation` variant (new relationship type)
+- Adding or renaming a node/edge property
+- Changing how a Cypher query generates IDs or labels
+
+### Commit Rule
+
+Schema changes must ship in an atomic commit that includes all modified files. The commit message must clearly state which node/relation type was added or changed.
+
+---
+
+## 7. MCP Server
+
+The MCP server (`src/mcp/`) exposes an HTTP API for AI agents to query the Neo4j graph without re-running the analysis.
+
+### Endpoints (under `/api/mcp/`)
+
+| Endpoint | Description |
+|---|---|
+| `execute_cypher` | Run an arbitrary Cypher query |
+| `search_nodes` | Full-text search on node names/IDs |
+| `find_calls` | Find callers/callees of a function |
+| `analyze_dependencies` | Dependency graph for a module/class |
+
+### Request Format
+
+All endpoints accept and return JSON. Errors are returned as structured JSON, never as plain text or panics.
+
+### Logging in MCP Mode
+
+Use `warn` as the default log level in MCP stdio mode to avoid polluting the JSON stream. Never print to stdout in MCP handlers — use `tracing` only.
+
+---
+
+## 8. Commit Conventions
+
+Use **Conventional Commits** format:
+
+```
+<type>(<scope>): <short description>
+
+[optional body]
+```
+
+| Type | When to use |
+|---|---|
+| `feat` | New feature or new language support |
+| `fix` | Bug fix |
+| `test` | Adding or updating tests |
+| `refactor` | Code restructuring without behavior change |
+| `docs` | Documentation updates |
+| `chore` | Tooling, dependencies, CI configuration |
+| `schema` | Neo4j schema changes (requires 3-file sync) |
+
+**Schema changes must use the `schema` type** and reference all three modified files in the commit body.
+
+---
+
+## 9. Security
+
+- **Never commit secrets.** Neo4j credentials in `.env.example` are for local development only.
+- The `.env` file (if it exists) is gitignored — keep it that way.
+- MCP endpoints must validate all inputs before executing Cypher. Never interpolate raw strings into Cypher queries.
+- Review authentication and connection handling any time `mcp/` or `neo4j_connectivity/` code changes.
+
+---
+
+## 10. Infrastructure
+
+### Development Environment
+
+The canonical development environment is the **VS Code Dev Container** (`.devcontainer/`). All contributors should use it to ensure reproducible builds.
+
+```bash
+# Build
+cargo build
+
+# Build (release)
+cargo build --release
+
+# Run analysis on examples
+cargo run -- examples/backend/
+
+# Run all tests
+cargo test
+
+# Run specific test category
+cargo test --test integration_extraction
+cargo test --test integration_neo4j
+```
+
+### Services (docker-compose.yml)
+
+| Service | Image | Ports |
+|---|---|---|
+| `neo4j` | neo4j:5.15 | 7474 (browser), 7687 (bolt) |
+| `code-continuum` | Local build | — |
+| `mcp-neo4j` | Local build | MCP HTTP API |
+
+### Deployment
+
+Use `scripts/deploy.sh` with the following commands:
+
+```bash
+./scripts/deploy.sh build      # Build Docker images
+./scripts/deploy.sh start      # Start all services
+./scripts/deploy.sh stop       # Stop all services
+./scripts/deploy.sh logs       # Tail service logs
+./scripts/deploy.sh analyze    # Run analysis
+./scripts/deploy.sh test       # Run tests
+./scripts/deploy.sh status     # Check service health
+./scripts/deploy.sh clean      # Remove containers and volumes
+```
+
+Neo4j health is checked automatically before running the analyzer. The MCP server is verified after startup.
