@@ -1,0 +1,10 @@
+# Configuration du proxy Cargo pour WSL2
+[http]
+multiplexing = true
+
+[env]
+# Le proxy sera défini dans devcontainer.json
+
+# Configuration pour cURL (utilisé par Cargo)
+[build]
+# Vous pouvez aussi configurer ici si nécessaire

@@ -1,0 +1,14 @@
+<%-- Fragment imbriqué niveau 2 - feuille de l'arbre d'inclusions --%>
+<%@ page contentType="text/html;charset=UTF-8" %>
+
+<div class="nested-content">
+    <span class="badge">Nested Fragment</span>
+    <p>Contenu du fragment imbriqué de niveau 2.</p>
+    <c:if test="${not empty data}">
+        <ul>
+            <c:forEach items="${data}" var="item">
+                <li>${item.name}</li>
+            </c:forEach>
+        </ul>
+    </c:if>
+</div>

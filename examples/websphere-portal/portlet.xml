@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<portlet-app xmlns="http://java.sun.com/xml/ns/portlet"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/portlet 
+             http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd"
+             version="2.0">
+
+    <!-- User Management Portlet -->
+    <portlet>
+        <portlet-name>UserManagementPortlet</portlet-name>
+        <portlet-class>com.example.portlets.UserManagementPortlet</portlet-class>
+        
+        <supports>
+            <mime-type>text/html</mime-type>
+            <portlet-mode>view</portlet-mode>
+            <portlet-mode>edit</portlet-mode>
+            <portlet-mode>help</portlet-mode>
+            <window-state>normal</window-state>
+            <window-state>maximized</window-state>
+        </supports>
+        
+        <portlet-info>
+            <title>User Management</title>
+            <short-title>Users</short-title>
+            <keywords>user,management,profile</keywords>
+        </portlet-info>
+        
+        <init-param>
+            <name>template-view</name>
+            <value>/WEB-INF/portlets/user-list.jsp</value>
+        </init-param>
+        
+        <init-param>
+            <name>template-edit</name>
+            <value>/WEB-INF/portlets/user-edit.jsp</value>
+        </init-param>
+        
+        <init-param>
+            <name>pageSize</name>
+            <value>10</value>
+        </init-param>
+        
+        <expiration-cache>300</expiration-cache>
+    </portlet>
+
+    <!-- Document Management Portlet -->
+    <portlet>
+        <portlet-name>DocumentPortlet</portlet-name>
+        <portlet-class>com.example.portlets.DocumentPortlet</portlet-class>
+        
+        <supports>
+            <mime-type>text/html</mime-type>
+            <portlet-mode>view</portlet-mode>
+            <portlet-mode>edit</portlet-mode>
+            <window-state>normal</window-state>
+            <window-state>maximized</window-state>
+        </supports>
+        
+        <portlet-info>
+            <title>Document Management</title>
+            <short-title>Documents</short-title>
+            <keywords>document,files,repository</keywords>
+        </portlet-info>
+        
+        <init-param>
+            <name>repository-path</name>
+            <value>/var/portal/documents</value>
+        </init-param>
+        
+        <init-param>
+            <name>max-file-size</name>
+            <value>52428800</value>
+        </init-param>
+        
+        <expiration-cache>600</expiration-cache>
+    </portlet>
+
+    <!-- Dashboard Portlet -->
+    <portlet>
+        <portlet-name>DashboardPortlet</portlet-name>
+        <portlet-class>com.example.portlets.DashboardPortlet</portlet-class>
+        
+        <supports>
+            <mime-type>text/html</mime-type>
+            <portlet-mode>view</portlet-mode>
+            <window-state>normal</window-state>
+            <window-state>maximized</window-state>
+        </supports>
+        
+        <portlet-info>
+            <title>Dashboard</title>
+            <short-title>Dashboard</short-title>
+            <keywords>dashboard,statistics,analytics</keywords>
+        </portlet-info>
+        
+        <init-param>
+            <name>refresh-interval</name>
+            <value>60</value>
+        </init-param>
+        
+        <expiration-cache>120</expiration-cache>
+    </portlet>
+
+    <!-- Workflow Portlet -->
+    <portlet>
+        <portlet-name>WorkflowPortlet</portlet-name>
+        <portlet-class>com.example.portlets.WorkflowPortlet</portlet-class>
+        
+        <supports>
+            <mime-type>text/html</mime-type>
+            <portlet-mode>view</portlet-mode>
+            <portlet-mode>edit</portlet-mode>
+            <window-state>normal</window-state>
+            <window-state>maximized</window-state>
+        </supports>
+        
+        <portlet-info>
+            <title>Workflow Management</title>
+            <short-title>Workflows</short-title>
+            <keywords>workflow,process,approval</keywords>
+        </portlet-info>
+        
+        <init-param>
+            <name>enable-notifications</name>
+            <value>true</value>
+        </init-param>
+        
+        <expiration-cache>0</expiration-cache>
+    </portlet>
+
+    <!-- Report Portlet -->
+    <portlet>
+        <portlet-name>ReportPortlet</portlet-name>
+        <portlet-class>com.example.portlets.ReportPortlet</portlet-class>
+        
+        <supports>
+            <mime-type>text/html</mime-type>
+            <portlet-mode>view</portlet-mode>
+            <portlet-mode>edit</portlet-mode>
+            <window-state>normal</window-state>
+            <window-state>maximized</window-state>
+        </supports>
+        
+        <portlet-info>
+            <title>Reports</title>
+            <short-title>Reports</short-title>
+            <keywords>report,export,analytics</keywords>
+        </portlet-info>
+        
+        <init-param>
+            <name>export-formats</name>
+            <value>PDF,Excel,CSV</value>
+        </init-param>
+        
+        <expiration-cache>1800</expiration-cache>
+    </portlet>
+
+</portlet-app>

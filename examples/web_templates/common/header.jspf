@@ -1,0 +1,27 @@
+<%-- Common header fragment included by main JSP pages --%>
+<%@ tag description="Page header fragment" pageEncoding="UTF-8" %>
+<%@ attribute name="title" required="false" %>
+<%@ attribute name="user" required="false" %>
+
+<header class="navbar navbar-dark bg-primary">
+    <div class="navbar-brand">
+        <h1>Portal Management System</h1>
+    </div>
+    
+    <nav class="navbar-menu">
+        <ul class="nav-menu">
+            <li><a href="/">Home</a></li>
+            <li><a href="/users">Users</a></li>
+            <li><a href="/documents">Documents</a></li>
+            <c:if test="${not empty user}">
+                <li><a href="/profile">${user.name}</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </c:if>
+            <c:if test="${empty user}">
+                <li><a href="/login">Login</a></li>
+            </c:if>
+        </ul>
+    </nav>
+</header>
+
+<script src="/resources/js/navigation.js"></script>

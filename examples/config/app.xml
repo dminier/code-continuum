@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <application>
+        <name>MyApplication</name>
+        <version>1.0.0</version>
+        <description>Multi-language test application</description>
+    </application>
+    
+    <database>
+        <host>localhost</host>
+        <port>5432</port>
+        <name>myapp_db</name>
+        <username>admin</username>
+        <password>secret</password>
+        <pool>
+            <min-connections>5</min-connections>
+            <max-connections>20</max-connections>
+        </pool>
+    </database>
+    
+    <server>
+        <port>8080</port>
+        <ssl>false</ssl>
+        <timeout>30</timeout>
+    </server>
+    
+    <logging>
+        <level>INFO</level>
+        <file>logs/app.log</file>
+        <format>%timestamp% [%level%] %message%</format>
+    </logging>
+</configuration>

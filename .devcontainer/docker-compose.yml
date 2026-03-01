@@ -1,0 +1,75 @@
+ 
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    volumes:
+      - ../..:/workspaces:cached
+      - cargo-cache:/usr/local/cargo
+      - ~/.ssh:/root/.ssh:ro  # Mount SSH keys from host (read-only)
+ 
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
+    environment:
+      RUST_BACKTRACE: "1"
+      NEO4J_URI: "bolt://neo4j:7687"
+      NEO4J_USER: "neo4j"
+      NEO4J_PASSWORD: "password"
+
+    # Connects to neo4j
+    depends_on:
+      - neo4j
+
+# Nouveau service : Serveur MCP pour Neo4j
+  mcp-neo4j:
+    image: mcp/neo4j-cypher:latest # ou votre image personnalisée
+    ports:
+      - "8000:8000" # Le serveur MCP écoute généralement sur le port 3000
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=password
+      - NEO4J_DATABASE=neo4j
+      - NEO4J_TRANSPORT=http
+      - NEO4J_MCP_SERVER_HOST=0.0.0.0 # must be 0.0.0.0 for sse  or http transport in Docker
+      - NEO4J_MCP_SERVER_PORT=8000
+      - NEO4J_MCP_SERVER_PATH=/api/mcp/
+      - NEO4J_NAMESPACE=local
+    depends_on:
+      - neo4j
+
+  neo4j:
+    # Using Neo4j 5.15 Community Edition
+    image: neo4j:5.15
+    restart: unless-stopped
+    ports:
+      - "7474:7474"    # Neo4j Browser
+      - "7687:7687"    # Bolt protocol
+    environment:
+      NEO4J_PLUGINS: '["apoc"]'  # Install APOC plugin
+      NEO4J_AUTH: neo4j/password
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_trigger_enabled: "true"
+      NEO4J_server_memory_heap_initial__size: 512M
+      NEO4J_server_memory_heap_max__size: 5G
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+      - neo4j-import:/var/lib/neo4j/import
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p password 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  cargo-cache:
+  neo4j-data:
+  neo4j-logs:
+  neo4j-import:

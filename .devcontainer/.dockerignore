@@ -1,0 +1,21 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Rust/Cargo
+target/
+Cargo.lock
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Node modules (if any)
+node_modules/

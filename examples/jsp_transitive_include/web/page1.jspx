@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jsp:root xmlns:jsp="http://java.sun.com/JSP/Page" 
+          xmlns:c="http://java.sun.com/jsp/jstl/core" 
+          version="2.0">
+
+    <div class="page1-container">
+        <h2>Page 1 - JSPX Content</h2>
+        
+        <!-- Inclusion dynamique du fragment principal -->
+        <jsp:include page="includes/fragment.jspf"/>
+        
+        <!-- Section sidebar avec fragment statique -->
+        <aside class="sidebar">
+            <%@ include file="includes/sidebar.jspf" %>
+        </aside>
+    </div>
+    
+</jsp:root>

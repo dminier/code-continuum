@@ -1,0 +1,11 @@
+<%@ page contentType="text/html; charset=UTF-8" %>
+<%@page import="com.example.portal.fo.beans.UserBean"%>
+<%@page import="com.example.portal.fo.beans.SessionContext"%>
+
+<%-- Fragment JSPF avec imports pour tests --%>
+<div class="user-info">
+    <%
+        UserBean user = (UserBean) request.getAttribute("user");
+        SessionContext ctx = SessionContext.getInstance();
+    %>
+</div>

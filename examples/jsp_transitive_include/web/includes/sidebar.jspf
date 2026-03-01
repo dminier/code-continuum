@@ -1,0 +1,9 @@
+<%-- Fragment sidebar - inclut les items de menu --%>
+<%@ page contentType="text/html;charset=UTF-8" %>
+
+<nav class="sidebar-nav">
+    <h4>Navigation</h4>
+    
+    <!-- Inclusion statique des items de menu -->
+    <%@ include file="sub/menu-items.jspf" %>
+</nav>

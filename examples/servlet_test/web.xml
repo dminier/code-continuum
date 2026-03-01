@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee 
+         http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+
+    <display-name>Servlet Test</display-name>
+
+    <!-- Servlet declaration without url-pattern -->
+    <servlet>
+        <servlet-name>RechercheServlet</servlet-name>
+        <servlet-class>com.example.servlets.RechercheServlet</servlet-class>
+    </servlet>
+
+    <!-- Separate servlet-mapping with url-pattern -->
+    <servlet-mapping>
+        <servlet-name>RechercheServlet</servlet-name>
+        <url-pattern>/Recherche.srv</url-pattern>
+    </servlet-mapping>
+
+    <!-- Another servlet with multiple patterns -->
+    <servlet>
+        <servlet-name>UserServlet</servlet-name>
+        <servlet-class>com.example.servlets.UserServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>UserServlet</servlet-name>
+        <url-pattern>/users/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>UserServlet</servlet-name>
+        <url-pattern>/api/users/*</url-pattern>
+    </servlet-mapping>
+
+</web-app>

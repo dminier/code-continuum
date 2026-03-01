@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<jsp:root xmlns:jsp="http://java.sun.com/JSP/Page"
+          xmlns:c="http://java.sun.com/jsp/jstl/core"
+          version="2.0">
+
+<jsp:directive.page contentType="text/html;charset=UTF-8" />
+
+<!-- Include header fragment -->
+<jsp:include page="/WEB-INF/common/header.jspf" />
+
+<html>
+    <head>
+        <title>User Profile</title>
+        <link rel="stylesheet" href="/resources/css/main.css" />
+        <link rel="stylesheet" href="/resources/css/profile.css" />
+    </head>
+    <body>
+        <div class="profile-container">
+            <h1>User Profile</h1>
+            
+            <div id="profile-card" class="card">
+                <img id="avatar" src="/images/default-avatar.png" alt="Avatar" />
+                <div id="profile-info"></div>
+                <button id="edit-profile-btn" class="btn btn-secondary">Edit Profile</button>
+            </div>
+            
+            <div id="profile-tabs">
+                <a href="#activity-tab">Activity</a>
+                <a href="#preferences-tab">Preferences</a>
+            </div>
+            
+            <div id="activity-tab" class="tab-panel"></div>
+            <div id="preferences-tab" class="tab-panel"></div>
+        </div>
+        
+        <!-- Include profile edit modal -->
+        <jsp:include page="/WEB-INF/fragments/profile-edit-modal.jsp" />
+        
+        <script src="/resources/js/profile-api.js"></script>
+        <script src="/resources/js/profile-ui.js"></script>
+        <script src="/resources/js/profile.js"></script>
+    </body>
+</html>
+
+</jsp:root>

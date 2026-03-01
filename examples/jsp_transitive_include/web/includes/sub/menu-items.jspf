@@ -1,0 +1,12 @@
+<%-- Items de menu - fragment feuille --%>
+<%@ page contentType="text/html;charset=UTF-8" %>
+
+<ul class="menu-items">
+    <li><a href="/home">Accueil</a></li>
+    <li><a href="/users">Utilisateurs</a></li>
+    <li><a href="/documents">Documents</a></li>
+    <li><a href="/reports">Rapports</a></li>
+    <c:if test="${user.isAdmin}">
+        <li><a href="/admin">Administration</a></li>
+    </c:if>
+</ul>

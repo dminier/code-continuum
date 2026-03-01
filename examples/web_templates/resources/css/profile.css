@@ -1,0 +1,64 @@
+/* Profile page styling */
+
+.profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.profile-card,
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+#avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+}
+
+.profile-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+}
+
+.profile-tabs a {
+    padding: 10px 20px;
+    text-decoration: none;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+}
+
+.profile-tabs a.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+
+.tab-panel {
+    display: none;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.profile-details h2 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.profile-details p {
+    margin: 8px 0;
+    color: #666;
+}

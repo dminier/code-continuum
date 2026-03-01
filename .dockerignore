@@ -1,0 +1,40 @@
+# Build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# Dev container
+.devcontainer/
+
+# Git
+.git/
+
+# Documentation
+# (keeping docs to avoid stripping vendored files)
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.log
+*.tmp
+.env.local
+
+# Docker
+# Keep Docker artifacts
+# (do not exclude Dockerfile or compose files)
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Samples
+.samples/

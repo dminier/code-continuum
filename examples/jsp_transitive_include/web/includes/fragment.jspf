@@ -1,0 +1,10 @@
+<%-- Fragment principal - inclut un sous-fragment --%>
+<%@ page contentType="text/html;charset=UTF-8" %>
+
+<div class="fragment-content">
+    <h3>Fragment principal</h3>
+    <p>Ce fragment inclut un sous-fragment imbriqué.</p>
+    
+    <!-- Inclusion statique d'un fragment imbriqué -->
+    <%@ include file="sub/nested-fragment.jspf" %>
+</div>

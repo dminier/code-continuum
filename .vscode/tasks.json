@@ -1,0 +1,67 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build",
+                "--bin=code-continuum"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$rustc"
+            ]
+        },
+        {
+            "label": "build release",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build",
+                "--release",
+                "--bin=code-continuum"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$rustc"
+            ]
+        },
+        {
+            "label": "test",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "test",
+                "-q"
+            ],
+            "group": "test",
+            "problemMatcher": [
+                "$rustc"
+            ]
+        },
+        {
+            "label": "format",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "fmt"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "lint",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "clippy",
+                "--all-targets"
+            ],
+            "group": "build"
+        }
+    ]
+}

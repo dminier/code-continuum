@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans 
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- Component Scanning -->
+    <context:component-scan base-package="com.example"/>
+
+    <!-- Service Beans -->
+    <bean id="userService" class="com.example.services.UserService"/>
+    <bean id="documentService" class="com.example.services.DocumentService"/>
+    <bean id="dashboardService" class="com.example.services.DashboardService"/>
+    <bean id="workflowService" class="com.example.services.WorkflowService"/>
+    <bean id="reportService" class="com.example.services.ReportService"/>
+
+    <!-- Database Configuration -->
+    <bean id="databaseConnector" class="com.example.services.DatabaseConnector">
+        <property name="dbUrl" value="${db.url}"/>
+        <property name="dbUser" value="${db.user}"/>
+        <property name="dbPassword" value="${db.password}"/>
+    </bean>
+
+    <!-- File Storage Configuration -->
+    <bean id="fileStorageManager" class="com.example.services.FileStorageManager">
+        <property name="baseStoragePath" value="${storage.path}"/>
+    </bean>
+
+    <!-- Utility Beans -->
+    <bean id="metricsCollector" class="com.example.services.MetricsCollector"/>
+    <bean id="notificationService" class="com.example.services.NotificationService"/>
+    <bean id="reportGenerator" class="com.example.services.ReportGenerator"/>
+    <bean id="exportManager" class="com.example.services.ExportManager"/>
+
+    <!-- Portlet Beans -->
+    <bean id="userManagementPortlet" class="com.example.portlets.UserManagementPortlet">
+        <property name="userService" ref="userService"/>
+    </bean>
+
+    <bean id="documentPortlet" class="com.example.portlets.DocumentPortlet">
+        <property name="documentService" ref="documentService"/>
+        <property name="fileStorageManager" ref="fileStorageManager"/>
+    </bean>
+
+    <bean id="dashboardPortlet" class="com.example.portlets.DashboardPortlet">
+        <property name="dashboardService" ref="dashboardService"/>
+    </bean>
+
+    <bean id="workflowPortlet" class="com.example.portlets.WorkflowPortlet">
+        <property name="workflowService" ref="workflowService"/>
+    </bean>
+
+    <bean id="reportPortlet" class="com.example.portlets.ReportPortlet">
+        <property name="reportService" ref="reportService"/>
+    </bean>
+
+    <!-- Servlet Beans -->
+    <bean id="dispatcherServlet" class="com.example.web.DispatcherServlet"/>
+    <bean id="resourceServlet" class="com.example.web.ResourceServlet"/>
+
+    <!-- Filter Beans -->
+    <bean id="authenticationFilter" class="com.example.filters.AuthenticationFilter"/>
+    <bean id="loggingFilter" class="com.example.filters.LoggingFilter"/>
+
+    <!-- Listener Beans -->
+    <bean id="portalStartupListener" class="com.example.listeners.PortalStartupListener"/>
+    <bean id="sessionListener" class="com.example.listeners.SessionListener"/>
+
+    <!-- Property Placeholder -->
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:application.properties"/>
+    </bean>
+
+</beans>

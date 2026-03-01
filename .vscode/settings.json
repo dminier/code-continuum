@@ -1,0 +1,23 @@
+{
+    "[rust]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    },
+    "rust-analyzer.checkOnSave.command": "clippy",
+    "rust-analyzer.inlayHints.enable": true,
+    "rust-analyzer.inlayHints.closureReturnTypeHints.enable": "always",
+    "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "always",
+    "rust-analyzer.inlayHints.typeHints.enable": true,
+    "rust-analyzer.inlayHints.parameterHints.enable": true,
+    "debug.console.fontSize": 13,
+    "debug.console.lineHeight": 1.5,
+    "editor.rulers": [80, 120],
+    "files.exclude": {
+        "**/target": true,
+        "**/.git": true
+    },
+    "search.exclude": {
+        "**/target": true,
+        ".git": true
+    }
+}

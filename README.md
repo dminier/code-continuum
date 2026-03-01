@@ -1,0 +1,74 @@
+# code-continuum
+
+Static analysis tool that builds a semantic graph from source code and exposes it to AI agents via an MCP server.
+
+## What it does
+
+1. Parses source code using Tree-Sitter
+2. Builds a semantic graph (classes, functions, imports, dependencies)
+3. Stores the graph in Neo4j
+4. Exposes it over HTTP via an MCP server so AI agents can query it with Cypher
+
+## Architecture
+
+```
+Source code
+    ↓  Tree-Sitter AST parsing
+Semantic graph
+    ↓  Cypher INSERT 
+Neo4j (bolt://localhost:7687)
+    ↓  HTTP/JSON (~100ms)
+MCP server (http://localhost:8000/api/mcp/)
+    ↓
+AI agents (Claude, Copilot, RAGIT, ...)
+```
+
+## Quick start
+
+The project ships with a Dev Container — no local setup required.
+
+```bash
+git clone <repo>
+cd code-continuum
+# Open in VS Code → "Reopen in Container"
+cargo test
+```
+
+Rust, Cargo, and Neo4j are all pre-configured in the container.
+
+## Usage
+
+```bash
+# Analyze a source directory
+cargo run -- examples/backend/java
+
+# Query the graph (Neo4j browser at http://localhost:7474)
+MATCH (f:Function {name: "processData"})-[:CALLS*1..5]->(g:Function)
+RETURN f.name, g.name
+```
+
+## Supported languages
+
+| Language | Extensions | Extraction |
+|---|---|---|
+| Java | `.java` | Specialized (classes, methods, imports, fields) |
+| JavaScript / TypeScript | `.js` `.jsx` `.ts` `.tsx` | Specialized (classes, methods) |
+| JSP / JSPX / JSPF | `.jsp` `.jspx` `.jspf` | Specialized (include relations) |
+| XML (WebSphere Portal) | `portlet.xml` `web.xml` | Specialized (servlet/portlet mappings) |
+| HTML | `.html` `.htm` | Indexed only (no extraction) |
+
+## Project structure
+
+```
+src/
+├── analysis/           # Orchestration
+├── semantic_graph/     # Core types (graph nodes, edges, DSL)
+├── graph_builder/      # AST extraction per language
+├── neo4j_connectivity/ # Neo4j export
+├── mcp/                # MCP HTTP server
+└── ...
+tests/                  # Integration tests
+.devcontainer/          # Docker setup (Rust + Neo4j)
+```
+
+ 
