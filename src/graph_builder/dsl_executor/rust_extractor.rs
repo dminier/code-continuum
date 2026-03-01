@@ -24,8 +24,48 @@ impl DslExecutor {
             metadata: self.metadata("rust"),
         });
 
+        // Premier passage : collecter les types locaux définis dans ce fichier
+        // pour distinguer les appels locaux (e.g. PackageFilter::new) des appels externes (e.g. Regex::new)
+        let local_types = self.collect_local_type_names(node, source);
+
         let ctx = ScopeContext::new().with_module(module_name, module_id);
-        self.traverse_rust(node, source, graph, &ctx);
+        self.traverse_rust(node, source, graph, &ctx, &local_types);
+    }
+
+    /// Premier passage rapide : collecte les noms de structs, enums, traits et impls du fichier
+    fn collect_local_type_names(
+        &self,
+        node: Node,
+        source: &str,
+    ) -> std::collections::HashSet<String> {
+        let mut types = std::collections::HashSet::new();
+        self.collect_types_recursive(node, source, &mut types);
+        types
+    }
+
+    fn collect_types_recursive(
+        &self,
+        node: Node,
+        source: &str,
+        types: &mut std::collections::HashSet<String>,
+    ) {
+        match node.kind() {
+            "struct_item" | "enum_item" | "trait_item" => {
+                if let Some(name_node) = node.child_by_field_name("name") {
+                    types.insert(self.get_text(name_node, source));
+                }
+            }
+            "impl_item" => {
+                if let Some(type_node) = node.child_by_field_name("type") {
+                    types.insert(self.get_text(type_node, source));
+                }
+            }
+            _ => {}
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            self.collect_types_recursive(child, source, types);
+        }
     }
 
     fn traverse_rust(
@@ -34,6 +74,7 @@ impl DslExecutor {
         source: &str,
         graph: &mut UnifiedGraph,
         ctx: &ScopeContext,
+        local_types: &std::collections::HashSet<String>,
     ) {
         match node.kind() {
             // fn name(...) -> ... { ... }
@@ -80,7 +121,7 @@ impl DslExecutor {
                     let func_ctx = ctx.with_function(func_id);
                     let mut cursor = node.walk();
                     for child in node.children(&mut cursor) {
-                        self.traverse_rust(child, source, graph, &func_ctx);
+                        self.traverse_rust(child, source, graph, &func_ctx, local_types);
                     }
                     return;
                 }
@@ -183,7 +224,7 @@ impl DslExecutor {
                     let trait_ctx = ctx.with_class(trait_name, trait_id);
                     let mut cursor = node.walk();
                     for child in node.children(&mut cursor) {
-                        self.traverse_rust(child, source, graph, &trait_ctx);
+                        self.traverse_rust(child, source, graph, &trait_ctx, local_types);
                     }
                     return;
                 }
@@ -203,7 +244,7 @@ impl DslExecutor {
 
                     let mut cursor = node.walk();
                     for child in node.children(&mut cursor) {
-                        self.traverse_rust(child, source, graph, &impl_ctx);
+                        self.traverse_rust(child, source, graph, &impl_ctx, local_types);
                     }
                     return;
                 }
@@ -242,7 +283,7 @@ impl DslExecutor {
                     let mod_ctx = ctx.with_class(mod_name, mod_id);
                     let mut cursor = node.walk();
                     for child in node.children(&mut cursor) {
-                        self.traverse_rust(child, source, graph, &mod_ctx);
+                        self.traverse_rust(child, source, graph, &mod_ctx, local_types);
                     }
                     return;
                 }
@@ -295,9 +336,27 @@ impl DslExecutor {
                             .unwrap_or(&full_call)
                             .to_string();
 
-                        if !called_name.is_empty() {
+                        // Qualificateur = tout ce qui précède le dernier ::
+                        // Ex: "Regex::new" → qualifier = "Regex"
+                        //     "cli::parse_args" → qualifier = "cli"
+                        let qualifier = full_call.rsplit_once("::").map(|(q, _)| q.to_string());
+
+                        // Si le qualificateur est un type CamelCase non défini localement,
+                        // il s'agit d'un appel vers une crate externe (ex: Regex::new, Vec::new).
+                        // On ne crée pas d'edge pour éviter les faux positifs.
+                        let is_external_type_call = qualifier.as_deref().map(|q| {
+                            let simple = q.split("::").last().unwrap_or(q);
+                            simple.chars().next().map(|c| c.is_uppercase()).unwrap_or(false)
+                                && !local_types.contains(simple)
+                        }).unwrap_or(false);
+
+                        if !called_name.is_empty() && !is_external_type_call {
                             let mut edge_metadata = HashMap::new();
                             edge_metadata.insert("method_name".to_string(), called_name.clone());
+                            edge_metadata.insert("full_call".to_string(), full_call.clone());
+                            if let Some(q) = qualifier {
+                                edge_metadata.insert("qualifier".to_string(), q);
+                            }
 
                             debug!(
                                 caller = %caller_id,
@@ -364,7 +423,7 @@ impl DslExecutor {
 
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.traverse_rust(child, source, graph, ctx);
+            self.traverse_rust(child, source, graph, ctx, local_types);
         }
     }
 }

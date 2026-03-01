@@ -384,9 +384,9 @@ flowchart TD
 
 ---
 
-### Step 4 — Assemble `doc/RETRODOC.md` (using Write tool)
+### Step 4 — Assemble `doc/RETRODOC_GENERATED.md` (using Write tool)
 
-Produce the file `/workspaces/code-continuum/doc/RETRODOC.md` with this exact structure:
+Produce the file `/workspaces/code-continuum/doc/RETRODOC_GENERATED.md` with this exact structure:
 
 ```
 # RETRODOC — code-continuum

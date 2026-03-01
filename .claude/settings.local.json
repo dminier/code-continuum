@@ -4,7 +4,9 @@
       "Bash(cargo test:*)",
       "Bash(cargo test)",
       "Bash(cargo build)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__neo4j__local-read_neo4j_cypher",
+      "Bash(cargo run:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

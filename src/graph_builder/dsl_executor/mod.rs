@@ -361,15 +361,24 @@ impl DslExecutor {
                     None
                 }
             } else {
-                // Appel sans objet : chercher dans le même fichier que le caller
+                // Appel sans objet : chercher d'abord dans le même fichier que le caller,
+                // puis fallback global si un seul candidat existe (appel cross-fichier non ambigu)
                 if let Some(candidates) = function_index.get(method_name) {
                     let parts: Vec<&str> = caller_id.split("::").collect();
                     if parts.len() >= 2 {
                         let file = parts[0];
-                        candidates
+                        let same_file = candidates
                             .iter()
                             .find(|id| id.starts_with(&format!("{file}::")))
-                            .cloned()
+                            .cloned();
+                        if same_file.is_some() {
+                            same_file
+                        } else if candidates.len() == 1 {
+                            // Unique candidat global : appel cross-fichier sans ambiguïté
+                            candidates.first().cloned()
+                        } else {
+                            None
+                        }
                     } else {
                         candidates.first().cloned()
                     }
