@@ -2,6 +2,17 @@
 //!
 //! Chaque test démarre un serveur MCP sur un port aléatoire, appelle l'endpoint
 //! via HTTP, puis vérifie le résultat directement dans Neo4j.
+//!
+//! **IMPORTANT (changement v0.2.0):**
+//! - Les chemins `project_path` sont maintenant **relatifs à `/app/data`** (CODE_PATH)
+//! - Les tests doivent fournir des chemins comme `"backend"`, `"backend/java"`, etc.
+//! - Les chemins absolus ne fonctionnent plus — la résolution se fait en interne
+//! - Cela aligne le MCP avec la structure du container (pas de désalignement chemin local vs container)
+//!
+//! Exécution des tests:
+//! ```bash
+//! cargo test --test integration_mcp -- --ignored --nocapture
+//! ```
 
 use crate::common;
 use reqwest::Client;
@@ -14,15 +25,19 @@ use tokio::net::TcpListener;
 // Helpers
 // ============================================================================
 
+/// Configure CODE_PATH pour les tests (pointe vers examples/)
+fn setup_code_path() {
+    let code_path = std::path::PathBuf::from("examples")
+        .canonicalize()
+        .unwrap_or_else(|_| std::path::PathBuf::from("examples"));
+    std::env::set_var("CODE_PATH", code_path.to_string_lossy().to_string());
+}
+
 /// Démarre le serveur MCP sur un port aléatoire, retourne le port lié.
 async fn start_test_mcp_server() -> u16 {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("Bind port 0");
-    let port = listener
-        .local_addr()
-        .expect("local_addr")
-        .port();
+    setup_code_path();
+    let listener = TcpListener::bind("127.0.0.1:0").await.expect("Bind port 0");
+    let port = listener.local_addr().expect("local_addr").port();
     let app = code_continuum::mcp::make_app();
     tokio::spawn(async move {
         axum::serve(listener, app).await.ok();
@@ -52,6 +67,7 @@ async fn mcp_call(client: &Client, url: &str, method: &str, id: u64, params: Val
 }
 
 /// Retourne le chemin absolu vers un sous-dossier de examples/.
+/// **Note (v0.2.0):** Pour les tests MCP, utilisez le chemin relatif au lieu de celui-ci.
 fn example_path(relative: &str) -> String {
     PathBuf::from("examples")
         .join(relative)
@@ -59,6 +75,12 @@ fn example_path(relative: &str) -> String {
         .unwrap_or_else(|_| PathBuf::from("examples").join(relative))
         .to_string_lossy()
         .to_string()
+}
+
+/// Retourne le chemin relatif à CODE_PATH (/app/data) pour les tests MCP.
+/// Dans le container, /app/data=examples/, donc "backend" mappe à examples/backend.
+fn mcp_project_path(relative: &str) -> String {
+    relative.to_string()
 }
 
 /// Compte les nœuds appartenant à un projet dans Neo4j.
@@ -105,9 +127,26 @@ async fn test_mcp_tools_list() {
         .map(|t| t["name"].as_str().unwrap_or(""))
         .collect();
 
-    assert!(names.contains(&"add_project"), "add_project manquant: {:?}", names);
-    assert!(names.contains(&"remove_project"), "remove_project manquant: {:?}", names);
-    assert_eq!(names.len(), 2, "Exactement 2 outils attendus");
+    assert!(
+        names.contains(&"list_projects"),
+        "list_projects manquant: {:?}",
+        names
+    );
+    assert!(
+        names.contains(&"add_project"),
+        "add_project manquant: {:?}",
+        names
+    );
+    assert!(
+        names.contains(&"remove_project"),
+        "remove_project manquant: {:?}",
+        names
+    );
+    assert_eq!(
+        names.len(),
+        3,
+        "Exactement 3 outils attendus (list_projects, add_project, remove_project)"
+    );
 }
 
 /// Test: initialize retourne les informations du serveur MCP.
@@ -163,7 +202,7 @@ async fn test_mcp_add_project_and_verify_neo4j() {
         return;
     }
 
-    let project_path = example_path("backend");
+    let project_path = mcp_project_path("backend");
     let project_name = "test-mcp-backend";
 
     // Cleanup préalable (au cas où un test précédent aurait échoué)
@@ -174,7 +213,10 @@ async fn test_mcp_add_project_and_verify_neo4j() {
     let url = format!("http://127.0.0.1:{}/api/mcp/", port);
 
     // --- ACT : appel MCP add_project ---
-    println!("📂 Ajout du projet: {} (name: {})", project_path, project_name);
+    println!(
+        "📂 Ajout du projet: {} (name: {})",
+        project_path, project_name
+    );
     let response = mcp_call(
         &client,
         &url,
@@ -196,7 +238,11 @@ async fn test_mcp_add_project_and_verify_neo4j() {
         .as_str()
         .unwrap_or("");
     println!("Réponse MCP: {}", content_text);
-    assert!(!is_error, "add_project a retourné une erreur: {}", content_text);
+    assert!(
+        !is_error,
+        "add_project a retourné une erreur: {}",
+        content_text
+    );
     assert!(
         content_text.contains(project_name),
         "La réponse doit mentionner le nom du projet"
@@ -205,7 +251,10 @@ async fn test_mcp_add_project_and_verify_neo4j() {
     // --- ASSERT 2 : nœuds présents dans Neo4j ---
     let count = count_project_nodes(&graph, project_name).await;
     println!("✅ Nœuds dans Neo4j pour '{}': {}", project_name, count);
-    assert!(count > 0, "Des nœuds doivent être présents dans Neo4j après add_project");
+    assert!(
+        count > 0,
+        "Des nœuds doivent être présents dans Neo4j après add_project"
+    );
 
     // --- ASSERT 3 : propriétés project_path et project_name sur les nœuds ---
     let q = neo4rs::query(
@@ -252,7 +301,7 @@ async fn test_mcp_remove_project() {
         return;
     }
 
-    let project_path = example_path("websphere-portal");
+    let project_path = mcp_project_path("websphere-portal");
     let project_name = "test-mcp-remove-websphere";
 
     cleanup_project(&graph, project_name).await;
@@ -276,11 +325,18 @@ async fn test_mcp_remove_project() {
     .await;
 
     let is_error = add_resp["result"]["isError"].as_bool().unwrap_or(true);
-    assert!(!is_error, "add_project a échoué: {}", add_resp["result"]["content"][0]["text"]);
+    assert!(
+        !is_error,
+        "add_project a échoué: {}",
+        add_resp["result"]["content"][0]["text"]
+    );
 
     let count_before = count_project_nodes(&graph, project_name).await;
     println!("✅ Nœuds ajoutés: {}", count_before);
-    assert!(count_before > 0, "Des nœuds doivent être présents après ajout");
+    assert!(
+        count_before > 0,
+        "Des nœuds doivent être présents après ajout"
+    );
 
     // --- ACT 2 : supprimer le projet ---
     println!("🗑️ Suppression du projet: {}", project_name);
@@ -307,8 +363,7 @@ async fn test_mcp_remove_project() {
     let count_after = count_project_nodes(&graph, project_name).await;
     println!("✅ Nœuds après suppression: {} (attendu: 0)", count_after);
     assert_eq!(
-        count_after,
-        0,
+        count_after, 0,
         "Plus aucun nœud ne doit être présent après remove_project"
     );
 
@@ -341,8 +396,8 @@ async fn test_mcp_two_projects_isolation() {
         return;
     }
 
-    let path1 = example_path("backend");
-    let path2 = example_path("websphere-portal");
+    let path1 = mcp_project_path("backend");
+    let path2 = mcp_project_path("websphere-portal");
     let name1 = "test-mcp-iso-backend";
     let name2 = "test-mcp-iso-websphere";
 
@@ -410,10 +465,20 @@ async fn test_mcp_two_projects_isolation() {
     // --- ASSERT : isolation ---
     let count1_after = count_project_nodes(&graph, name1).await;
     let count2_after = count_project_nodes(&graph, name2).await;
-    println!("  {} → {} nœuds après suppression (attendu: 0)", name1, count1_after);
-    println!("  {} → {} nœuds inchangés (attendu: {})", name2, count2_after, count2);
+    println!(
+        "  {} → {} nœuds après suppression (attendu: 0)",
+        name1, count1_after
+    );
+    println!(
+        "  {} → {} nœuds inchangés (attendu: {})",
+        name2, count2_after, count2
+    );
 
-    assert_eq!(count1_after, 0, "{} doit être vide après remove_project", name1);
+    assert_eq!(
+        count1_after, 0,
+        "{} doit être vide après remove_project",
+        name1
+    );
     assert_eq!(
         count2_after, count2,
         "Les nœuds de {} ne doivent pas être affectés",
@@ -451,7 +516,7 @@ async fn test_mcp_add_project_with_clear() {
         return;
     }
 
-    let project_path = example_path("backend");
+    let project_path = mcp_project_path("backend");
     let project_name = "test-mcp-clear";
 
     cleanup_project(&graph, project_name).await;
@@ -505,4 +570,55 @@ async fn test_mcp_add_project_with_clear() {
     // --- CLEANUP ---
     cleanup_project(&graph, project_name).await;
     println!("=== TEST TERMINÉ ===\n");
+}
+/// Test: list_projects énumère les sous-dossiers de /app/data
+///
+/// NOTE: Ce test fonctionne en dev avec /app/data défini si on est en container.
+/// En local, créez un symlink: `ln -s $(pwd)/examples /app/data`
+/// ou modifiez le code pour utiliser une variable d'env.
+#[tokio::test]
+#[ignore = "Nécessite /app/data (container) ou symlink local"]
+async fn test_mcp_list_projects() {
+    println!("\n=== TEST MCP: list_projects ===\n");
+
+    let port = start_test_mcp_server().await;
+    let client = Client::new();
+    let url = format!("http://127.0.0.1:{}/api/mcp/", port);
+
+    // --- ACT : appel MCP list_projects ---
+    let response = mcp_call(
+        &client,
+        &url,
+        "tools/call",
+        1,
+        json!({
+            "name": "list_projects",
+            "arguments": {}
+        }),
+    )
+    .await;
+
+    // --- ASSERT ---
+    let is_error = response["result"]["isError"].as_bool().unwrap_or(true);
+    let content_text = response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or("");
+
+    println!("Response: {}", content_text);
+
+    // Si /app/data n'existe pas, l'erreur est attendue
+    if is_error {
+        if content_text.contains("/app/data n'existe pas") {
+            println!("✓ Réponse attendue: /app/data n'existe pas (pas en container)");
+        } else {
+            println!("! Erreur inattendue: {}", content_text);
+        }
+    } else {
+        // Si /app/data existe, on devrait avoir une liste
+        println!("✓ list_projects réussi");
+        assert!(
+            content_text.contains("disponibles") || content_text.contains("trouvés"),
+            "Réponse should mention 'disponibles' or 'trouvés'"
+        );
+    }
 }

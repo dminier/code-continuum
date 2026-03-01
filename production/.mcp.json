@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "neo4j": {
+      "type": "http",
+      "url": "http://localhost:8000/api/mcp/"
+    },
+    "code-continuum": {
+      "type": "http",
+      "url": "http://localhost:8001/api/mcp/"
+    }
+  }
+}

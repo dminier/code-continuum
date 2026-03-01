@@ -7,6 +7,13 @@ use crate::analysis::executor;
 use crate::config::PackageFilter;
 use crate::semantic_graph::Neo4jExporter;
 
+/// Récupère le chemin CODE_PATH depuis l'env var CODE_PATH ou retourne /app/data par défaut
+fn get_code_path() -> std::path::PathBuf {
+    std::env::var("CODE_PATH")
+        .map(|p| std::path::PathBuf::from(p))
+        .unwrap_or_else(|_| std::path::PathBuf::from("/app/data"))
+}
+
 /// Construit le Router axum du serveur MCP (utilisable en test)
 pub fn make_app() -> Router {
     Router::new().route("/api/mcp/", post(handle_mcp_request))
@@ -76,14 +83,22 @@ fn handle_tools_list() -> Value {
     json!({
         "tools": [
             {
+                "name": "list_projects",
+                "description": "Énumère tous les projets disponibles (sous-dossiers) montés sous CODE_PATH (/app/data). À utiliser pour découvrir les projets avant d'appeler add_project.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
                 "name": "add_project",
-                "description": "Analyse un projet et ajoute ses nœuds/relations au graphe Neo4j. N'efface pas les autres projets.",
+                "description": "Analyse un projet et ajoute ses nœuds/relations au graphe Neo4j. N'efface pas les autres projets. Le chemin doit être relatif à CODE_PATH (/app/data).",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Chemin absolu du projet à analyser (ex: /app/data/monprojet)"
+                            "description": "Chemin du projet relatif à CODE_PATH (ex: 'backend/java' ou 'my-app'). Utilisez list_projects pour découvrir les projets disponibles."
                         },
                         "project_name": {
                             "type": "string",
@@ -109,7 +124,7 @@ fn handle_tools_list() -> Value {
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Chemin du projet à supprimer (doit correspondre au project_path utilisé lors de l'ajout)"
+                            "description": "Chemin du projet relatif à CODE_PATH (ex: 'backend/java' ou 'my-app'). Doit correspondre au project_path utilisé lors de l'ajout."
                         }
                     },
                     "required": ["project_path"]
@@ -123,6 +138,7 @@ async fn handle_tools_call(params: &Value) -> Value {
     let tool_name = params["name"].as_str().unwrap_or("");
 
     match tool_name {
+        "list_projects" => handle_list_projects(),
         "add_project" => handle_add_project(&params["arguments"]).await,
         "remove_project" => handle_remove_project(&params["arguments"]).await,
         _ => json!({
@@ -132,8 +148,57 @@ async fn handle_tools_call(params: &Value) -> Value {
     }
 }
 
+fn handle_list_projects() -> Value {
+    let code_path = get_code_path();
+
+    if !code_path.exists() {
+        return json!({
+            "content": [{"type": "text", "text": format!("CODE_PATH n'existe pas: {}", code_path.display())}],
+            "isError": true
+        });
+    }
+
+    match std::fs::read_dir(&code_path) {
+        Ok(entries) => {
+            let mut projects = Vec::new();
+
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        if let Some(file_name) = path.file_name() {
+                            if let Some(name) = file_name.to_str() {
+                                projects.push(name.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+
+            projects.sort();
+
+            if projects.is_empty() {
+                json!({
+                    "content": [{"type": "text", "text": format!("Aucun projet trouvé sous CODE_PATH ({})", code_path.display())}],
+                    "isError": false
+                })
+            } else {
+                let project_list = projects.join("\n  ");
+                json!({
+                    "content": [{"type": "text", "text": format!("Projets disponibles:\n  {}", project_list)}],
+                    "isError": false
+                })
+            }
+        }
+        Err(e) => json!({
+            "content": [{"type": "text", "text": format!("Erreur lors de la lecture de CODE_PATH: {}", e)}],
+            "isError": true
+        }),
+    }
+}
+
 async fn handle_add_project(args: &Value) -> Value {
-    let project_path = match args["project_path"].as_str() {
+    let relative_path = match args["project_path"].as_str() {
         Some(p) => p.to_string(),
         None => {
             return json!({
@@ -143,12 +208,16 @@ async fn handle_add_project(args: &Value) -> Value {
         }
     };
 
+    // Résoudre le chemin relatif à CODE_PATH
+    let code_path = get_code_path();
+    let full_path = code_path.join(&relative_path);
+
     // project_name: dernier segment du chemin si non fourni
     let project_name = args["project_name"]
         .as_str()
         .map(|s| s.to_string())
         .unwrap_or_else(|| {
-            std::path::Path::new(&project_path)
+            std::path::Path::new(&relative_path)
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("unknown")
@@ -158,18 +227,16 @@ async fn handle_add_project(args: &Value) -> Value {
     let include_packages = args["include_packages"].as_str().map(|s| s.to_string());
     let clear_project = args["clear_project"].as_bool().unwrap_or(false);
 
-    let path = std::path::Path::new(&project_path);
-
-    if !path.exists() {
+    if !full_path.exists() {
         return json!({
-            "content": [{"type": "text", "text": format!("Chemin introuvable: {}", project_path)}],
+            "content": [{"type": "text", "text": format!("Projet non trouvé: {} (résolu à: {})", relative_path, full_path.display())}],
             "isError": true
         });
     }
 
-    if !path.is_dir() {
+    if !full_path.is_dir() {
         return json!({
-            "content": [{"type": "text", "text": format!("Le chemin n'est pas un répertoire: {}", project_path)}],
+            "content": [{"type": "text", "text": format!("Le chemin n'est pas un répertoire: {}", relative_path)}],
             "isError": true
         });
     }
@@ -191,14 +258,14 @@ async fn handle_add_project(args: &Value) -> Value {
 
     info!(
         project = %project_name,
-        path = %project_path,
+        path = %relative_path,
         clear = clear_project,
         "MCP: add_project"
     );
 
     match executor::analyze_repository_for_project(
-        path,
-        &project_path,
+        &full_path,
+        &relative_path,
         &project_name,
         filter,
         clear_project,
@@ -220,7 +287,7 @@ async fn handle_add_project(args: &Value) -> Value {
 }
 
 async fn handle_remove_project(args: &Value) -> Value {
-    let project_path = match args["project_path"].as_str() {
+    let relative_path = match args["project_path"].as_str() {
         Some(p) => p.to_string(),
         None => {
             return json!({
@@ -230,7 +297,7 @@ async fn handle_remove_project(args: &Value) -> Value {
         }
     };
 
-    info!(path = %project_path, "MCP: remove_project");
+    info!(path = %relative_path, "MCP: remove_project");
 
     // Convertir Box<dyn Error> en String immédiatement pour éviter de la tenir à travers un await
     let exporter = match Neo4jExporter::new().await {
@@ -243,11 +310,11 @@ async fn handle_remove_project(args: &Value) -> Value {
         }
     };
 
-    match exporter.delete_project(&project_path).await {
+    match exporter.delete_project(&relative_path).await {
         Ok(count) => json!({
             "content": [{
                 "type": "text",
-                "text": format!("Projet supprimé: {} nœuds supprimés (project_path: {})", count, project_path)
+                "text": format!("Projet supprimé: {} nœuds supprimés (project_path: {})", count, relative_path)
             }],
             "isError": false
         }),

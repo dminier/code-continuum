@@ -38,7 +38,9 @@ Two MCP servers run alongside Neo4j:
 | `mcp-code-continuum` | 8001 | Add / remove projects in the graph |
 | `mcp-neo4j` | 8000 | Query the graph with Cypher |
 
-The `.mcp.json` at the root wires both into Claude Code automatically:
+### Configuration
+
+**Devcontainer:** Use `.mcp.json` at the root (service names):
 
 ```json
 {
@@ -55,16 +57,45 @@ The `.mcp.json` at the root wires both into Claude Code automatically:
 }
 ```
 
+**Production:** Use `production/.mcp.json` (localhost):
+
+```json
+{
+  "mcpServers": {
+    "neo4j": {
+      "type": "http",
+      "url": "http://localhost:8000/api/mcp/"
+    },
+    "code-continuum": {
+      "type": "http",
+      "url": "http://localhost:8001/api/mcp/"
+    }
+  }
+}
+```
+
 ### Tools — code-continuum MCP
+
+#### `list_projects`
+
+Énumère tous les projets disponibles (sous-dossiers) montés sous CODE_PATH (`/app/data`).
+
+Use this first to discover what projects are available, then pass a project name to `add_project`.
+
+**No parameters required.**
+
+**Returns:** List of available project names relative to CODE_PATH.
 
 #### `add_project`
 
 Analyses a source directory and inserts its nodes/relations into Neo4j.
 Does **not** clear the whole database — each project is isolated by `project_path` / `project_name`.
 
+The project path must be **relative to CODE_PATH** (e.g., `backend/java`, `my-app`). Use `list_projects` to discover available projects first.
+
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `project_path` | string | ✅ | Absolute path to the project under `/app/data` |
+| `project_path` | string | ✅ | Path relative to CODE_PATH (e.g. `backend/java` or `my-app`) |
 | `project_name` | string | | Friendly name (defaults to last segment of the path) |
 | `include_packages` | string | | CSV filter: only index matching packages (e.g. `com.example,org.app`) |
 | `clear_project` | boolean | | Delete existing data for this project before re-indexing (default: `false`) |
@@ -75,7 +106,7 @@ Deletes all nodes and relations belonging to a project.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `project_path` | string | ✅ | Must match the `project_path` used when adding |
+| `project_path` | string | ✅ | Must be relative to CODE_PATH and match the `project_path` used when adding |
 
 ### Tools — Neo4j MCP
 
@@ -97,58 +128,125 @@ RETURN n.project_name, n.file_path
 
 ## Quick start
 
-### 1 — Start the stack
+> ⚠️ Choose your setup:
+> - **Devcontainer:** Development inside VS Code container (recommended for contributors)
+> - **Production:** Standalone Docker on any machine (ready for deployment)
+
+### Development — VS Code Devcontainer
+
+Open the workspace in VS Code, and it will automatically prompt to reopen in the Dev Container:
 
 ```bash
-# Copy and fill in the password
-cp .env.example .env
+# 1. Clone and open in VS Code
+git clone <repo>
+cd code-continuum
+# Click "Reopen in Container" when prompted
 
-# Start Neo4j + both MCP servers
+# 2. Inside the container, run tests or analyses
+cargo test
+cargo run -- examples/backend/java
+
+# 3. Neo4j + MCP servers are auto-started by devcontainer config
+# MCP endpoints available at:
+#   http://mcp-neo4j:8000/api/mcp/      (Neo4j queries)
+#   http://mcp-code-continuum:8001/api/mcp/ (project management)
+```
+
+**Use root `.mcp.json`** (already configured for service names).
+
+### Production — Docker Compose (localhost)
+
+Deploy on any machine with Docker. All services communicate via `localhost`.
+
+#### 1 — Start the stack
+
+```bash
+cd production
+cp .env.example .env
+# Edit .env — set NEO4J_PASSWORD and CODE_PATH if needed
+
 docker compose up -d neo4j mcp-neo4j mcp-code-continuum
 ```
 
-### 2 — Mount your codebase
-
-Set `CODE_PATH` in `.env` (or inline) to point to the project you want to analyse:
+Wait for Neo4j to be healthy:
 
 ```bash
-CODE_PATH=/path/to/your/project docker compose up -d
+docker compose logs neo4j | grep -i "started"
+# Or check browser: http://localhost:7474 (default neo4j/your_password)
+```
+
+#### 2 — Mount your codebase
+
+By default, the `CODE_PATH` is set to `./examples`. To analyze a different project:
+
+```bash
+# Option A: Edit production/.env
+CODE_PATH=/absolute/path/to/your/project docker compose up -d
+
+# Option B: Provide inline
+docker compose run --rm code-continuum /path/to/project
 ```
 
 The directory is mounted read-only at `/app/data` inside the container.
 
-### 3 — Let Claude analyse your project
+#### 3 — Use the MCP endpoints
 
-In Claude Code, use the `add_project` tool:
+From Claude Code or any MCP client, point to **localhost**:
+
+```bash
+# Copy production/.mcp.json to your Claude Code config
+# It already points to localhost endpoints
+cat production/.mcp.json
+```
+
+First, list available projects:
+
+```
+list_projects()
+```
+
+Then add a project:
 
 ```
 add_project(
-  project_path = "/app/data",
-  project_name = "my-project"
+  project_path = "backend/java",
+  project_name = "my-java-backend"
 )
 ```
 
-Then query with the `neo4j` tool:
+Query with the `neo4j` tool:
 
 ```
-Run Cypher: MATCH (c:Class {project_name: "my-project"}) RETURN c.name LIMIT 20
+Run Cypher: MATCH (c:Class {project_name: "my-java-backend"}) RETURN c.name LIMIT 20
 ```
 
-### 4 — Remove a project
+Remove a project when done:
 
 ```
-remove_project(project_path = "/app/data")
+remove_project(project_path = "backend/java")
+```
+
+#### 4 — Stop the stack
+
+```bash
+cd production
+docker compose down
+# Remove data volumes (if needed): docker compose down -v
 ```
 
 ## Development
 
-The project ships with a Dev Container — no local setup required.
+All development happens in the **VS Code Devcontainer** — no local Rust/Neo4j installation required.
 
 ```bash
 git clone <repo>
 cd code-continuum
-# Open in VS Code → "Reopen in Container"
+# VS Code → "Reopen in Container"
 ```
+
+Once inside the container, the devcontainer's own `docker-compose.yml` automatically starts Neo4j and both MCP servers. The root `.mcp.json` is pre-configured for service names.
+
+**For production deployment**, see [Production — Docker Compose (localhost)](#production--docker-compose-localhost) above.
 
 ### Run tests
 
@@ -164,6 +262,10 @@ cargo test -- --ignored --nocapture
 ```
 
 ### Analyse locally (development only)
+
+The CLI batch mode (direct invocation) clears the entire database on each run. **Use this only for testing, not for multi-project work.**
+
+For multi-project analysis, always use the MCP `add_project` tool (see [Production — Docker Compose (localhost)](#production--docker-compose-localhost)).
 
 ```bash
 # Direct CLI — clears the whole database and imports the directory
