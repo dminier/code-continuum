@@ -111,10 +111,13 @@ tests/                  # Integration tests
 
 ## Motivation
 
-I work with many languages — Java, JavaScript, and Python in particular — but I am fairly new to Rust. I fully embrace VibeCoding 🙂 and my sincere apologies to seasoned Rust developers for anything that makes them cringe.
+I tested this approach on a real Java WebSphere Portal project during a legacy migration. The AST + Graph + Agentic combo is incredibly powerful — the AI maps the application architecture almost instantly and generates Cypher queries that would take a human forever 😄.
 
-That said, I deliberately chose Rust over Python for two reasons: raw speed, and the naturally smooth integration with Tree-Sitter.
+This is just the core technique. The full migration relies on multi-agent orchestration (retro-spec → new API spec → code generation), which is a whole other story. In the schema, relations like CALL_BACKEND are enriched by agents, because it’s too complex to capture all backend calls with Tree‑Sitter or regex alone. For projects like WebSphere Portal, this tool shines at quickly identifying all session-related impacts, a real headache if sessions have been heavily used.
 
-I was able to validate the approach on a real Java WebSphere Portal project in the context of a legacy migration. The **AST + Graph + Agentic** combo is remarkably powerful — the AI grasps the application architecture almost instantly. On the other side, AI is genuinely effective at writing Cypher queries, a task that would take a human an unreasonable amount of time. 😄
+Another experimented use case is API retrodocumentation. By giving the AI a complete view of the sequence diagram, it can retrodocument both technically and functionally. The diagram acts as a guiding thread, preventing the AI from getting lost in the complexity of the system.
 
-The next frontier: **COBOL** — the king of legacies.
+
+The next DSL : **COBOL** — the king of legacies.
+
+If you’re interested in this approach or want to discuss it further, feel free to contact me and exchange ideas.
