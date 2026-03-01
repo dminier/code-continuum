@@ -1,173 +1,160 @@
-# SCHEMA_IA.md - Référence Cypher pour Agents IA
+# SCHEMA_IA.md - Cypher Reference for AI Agents
 
-**Schéma Neo4j essentiels et suffisants pour construire des requêtes Cypher.**
+**Essential Neo4j schema for building Cypher queries.**
 
 ---
 
-## 🎯 Labels (Types de nœuds)
+## Node Labels
 
 ```
-:Function     - Fonctions/Méthodes (object_method: true si méthode d'object literal JS)
-:Class        - Classes/Interfaces/Types
-:Interface    - Interfaces (héritent aussi de :Class)
-:Variable     - Variables/Paramètres
-:Parameter    - Paramètres de fonction
-:Import       - Imports/requires
-:Package      - Packages Java
-:Module       - Modules/Namespaces (object_literal: true si object literal JS)
-:Type         - Types personnalisés
-:Trait        - Traits/Mixins (Rust)
+:Function     - Functions/Methods (object_method: true if JS object literal method)
+:Class        - Classes / Interfaces / Types
+:Interface    - Interfaces (also carry :Class label)
+:Variable     - Variables / Parameters
+:Parameter    - Function parameters
+:Import       - Imports / requires
+:Package      - Java packages
+:Module       - Modules / Namespaces (object_literal: true if JS object literal)
+:Type         - Custom types
+:Trait        - Traits / Mixins (Rust)
 :Expression   - Expressions
-:Operator     - Opérateurs
-:JS           - Fichiers JavaScript (file/module anchor)
-:Jsp          - Fichiers JSP/JSPX/JSPF
-:WebXml       - Fichier web.xml
-:PortletXml   - Fichier portlet.xml
-:Servlet      - Servlets déclarés (web.xml) ⚠️ Représente le NOM, pas la classe
-:Portlet      - Portlets déclarés (portlet.xml) ⚠️ Représente le NOM, pas la classe
-:Filter       - Filters déclarés (web.xml) ⚠️ Représente le NOM, pas la classe
+:Operator     - Operators
+:JS           - JavaScript files (file/module anchor)
+:Jsp          - JSP / JSPX / JSPF files
+:WebXml       - web.xml file
+:PortletXml   - portlet.xml file
+:Servlet      - Declared servlets (web.xml) ⚠️ Represents the NAME, not the class
+:Portlet      - Declared portlets (portlet.xml) ⚠️ Represents the NAME, not the class
+:Filter       - Declared filters (web.xml) ⚠️ Represents the NAME, not the class
 ```
 
-### ⚠️ Important : NOM vs CLASSE pour les composants backend
+### ⚠️ Name vs Class for backend components
 
-Les nœuds `:Portlet`, `:Servlet` et `:Filter` représentent le **NOM** du composant tel que défini dans les fichiers de configuration (`portlet.xml`, `web.xml`), **pas la classe d'implémentation**.
+`:Portlet`, `:Servlet` and `:Filter` nodes represent the **name** of the component as declared in configuration files (`portlet.xml`, `web.xml`), **not the implementation class**.
 
-| Nœud | Propriété `name` | Exemple | Lien vers classe |
-|------|------------------|---------|------------------|
+| Node | `name` property | Example | Link to class |
+|------|-----------------|---------|---------------|
 | `:Portlet` | `<portlet-name>` | `GestionEP` | `IMPLEMENTED_BY` → `:Class` |
 | `:Servlet` | `<servlet-name>` | `SearchServlet` | `IMPLEMENTED_BY` → `:Class` |
 | `:Filter` | `<filter-name>` | `AuthFilter` | `IMPLEMENTED_BY` → `:Class` |
 
-Voir : [definition-composants-backend.md](../rules/definition-composants-backend.md)
-
 ---
 
-## 🔗 Relations principales
+## Main Relations
 
 ```
-# Relations d'appel
-CALLS          Function → Function      (appel de fonction)
-               Métadonnées: call_type = "standard|ajax|service|dao"
-                          method, async, operation, etc.
-TRIGGERS       Function → Node          (déclenchement)
+# Call relations
+CALLS          Function → Function      (function call)
+               Metadata: call_type = "standard|ajax|service|dao"
+                         method, async, operation, etc.
+TRIGGERS       Function → Node          (trigger)
 
-# Relations de structure
-CONTAINS       Class/JS/Module → Function/Class (contenance)
-DEFINES        Class/Module → Function  (définition de méthode, y compris object literal JS)
-HAS_PARAM      Function → Parameter     (paramètres)
-RETURNS        Function → Type          (type de retour)
+# Structure relations
+CONTAINS       Class/JS/Module → Function/Class  (containment)
+DEFINES        Class/Module → Function            (method definition, incl. JS object literals)
+HAS_PARAM      Function → Parameter              (parameters)
+RETURNS        Function → Type                    (return type)
 
-# Relations de dépendance
-USES           Function → Variable      (utilisation)
+# Dependency relations
+USES           Function → Variable      (variable usage)
 IMPORTS        Function/Class → Import  (import/require)
-REFERENCES     Node → Definition        (référence)
-DEPENDS_ON     JS → JS                  (dépendance JS)
+REFERENCES     Node → Definition        (reference)
+DEPENDS_ON     JS → JS                  (JS dependency)
 
-# Relations de type
-HAS_TYPE       Node → Type              (typage)
-DECLARE_TYPE   Node → Type              (déclaration type)
-EXTENDS        Class → Class            (héritage)
-IMPLEMENTS     Class → Interface        (implémentation)
-IMPLEMENTED_BY Interface → Class        (inverse IMPLEMENTS)
+# Type relations
+HAS_TYPE       Node → Type              (typing)
+DECLARE_TYPE   Node → Type              (type declaration)
+EXTENDS        Class → Class            (inheritance)
+IMPLEMENTS     Class → Interface        (implementation)
+IMPLEMENTED_BY Interface → Class        (inverse of IMPLEMENTS)
 
-# Relations d'assignation et visibilité
-ASSIGNED_BY    Variable → Expression    (assignation)
+# Assignment and visibility
+ASSIGNED_BY    Variable → Expression    (assignment)
 EXPORTS        Module → Symbol          (export)
 
-# Relations WebSphere
+# WebSphere relations
 CONFIGURES     WebXml/PortletXml → Servlet/Portlet/Filter
-IMPLEMENTED_BY Servlet/Portlet/Filter → Class    (implémentation Java)
-RENDERS        Portlet → JSP            (rendu JSP)
+IMPLEMENTED_BY Servlet/Portlet/Filter → Class    (Java implementation)
+RENDERS        Portlet → JSP            (JSP rendering)
 NOTIFIES       Service → Service        (notification)
 
-# Relations JSP
-INCLUDES_JS    Jsp → Js ou Jsp          (inclusion JS: fichier .js OU .jsp/.jspx générant du JS dynamique)
-INCLUDES_CSS   Jsp → (CSS file)         (inclusion CSS)
-INCLUDES_JSP   Jsp → Jsp                (inclusion JSP)
-IMPORTS        Jsp → Class              (imports Java: <%@page import="..."%>)
-BINDS_DATA     JSP ↔ JS                 (partage données)
+# JSP relations
+INCLUDES_JS    Jsp → Js or Jsp          (JS inclusion: .js file OR .jsp/.jspx generating dynamic JS)
+INCLUDES_CSS   Jsp → (CSS file)         (CSS inclusion)
+INCLUDES_JSP   Jsp → Jsp                (JSP inclusion)
+IMPORTS        Jsp → Class              (Java imports: <%@page import="..."%>)
+BINDS_DATA     JSP ↔ JS                 (data sharing)
 
-# Relations DOM
-TARGETS_ELEMENT JS → DOM                (ciblage DOM)
+# DOM relations
+TARGETS_ELEMENT JS → DOM               (DOM targeting)
 ```
 
 ---
 
-## 📋 Propriétés clés des nœuds
+## Key Node Properties
 
-**Toujours disponibles :**
-- `id` : Identifiant unique qualifié
-- `name` : Nom court
-- `node_type` : Type (ex: "Function", "Class", "JS")
+**Always present:**
+- `id` : Unique qualified identifier
+- `name` : Short name
+- `node_type` : Type (e.g. "Function", "Class", "JS")
 - `language` : "java", "javascript", "jsp", "xml", etc.
-- `file_path` : Chemin du fichier source
-- `start_line`, `end_line` : Position dans le fichier
+- `file_path` : Source file path
+- `start_line`, `end_line` : Position in the file
 
-**Optionnels par type :**
-- `package` : Pour les nœuds Java
-- `class` : Pour les méthodes
-- `module` : Pour les nœuds JavaScript
-- `metadata` : Dictionnaire pour propriétés supplémentaires
-  - `metadata.class` : Pour Servlet/Portlet/Filter (FQN de la classe Java)
-  - `metadata.url-pattern` : Pour Servlet/Filter (pattern d'URL, ex: `/user/*`, `*.srv`)
-  - `metadata.qualified_name` : Pour Class (nom complet avec package)
-  - `metadata.external` : Boolean (true si classe externe/non analysée)
-  - `metadata.import_type` : Pour relation IMPORTS (ex: "java")
+**Optional by type:**
+- `package` : For Java nodes
+- `class` : For methods
+- `module` : For JavaScript nodes
+- `metadata` : Dictionary for extra properties
+  - `metadata.class` : For Servlet/Portlet/Filter (FQN of the Java class)
+  - `metadata.url-pattern` : For Servlet/Filter (URL pattern, e.g. `/user/*`, `*.srv`)
+  - `metadata.qualified_name` : For Class (fully qualified name)
+  - `metadata.external` : Boolean (true if external/unanalyzed class)
+  - `metadata.import_type` : For IMPORTS relation (e.g. "java")
 
 ---
 
-## 🔗 Propriétés des relations
+## Relation Properties
 
-### IMPORTS (JSP → Class ou Class → Class)
+### IMPORTS (JSP → Class or Class → Class)
 
 ```
 IMPORTS {
-  import_type: "java"              # Type d'import
-  qualified_name: String           # Nom complet de la classe importée
+  import_type: "java"              # Import type
+  qualified_name: String           # Fully qualified name of the imported class
 }
 ```
 
-**Exemple JSP :**
 ```cypher
 MATCH (jsp:Jsp)-[r:IMPORTS]->(cls:Class)
 RETURN jsp.file_path, r.qualified_name, cls.id
 ```
 
-### INCLUDES_JS (JSP → Js ou Jsp)
+### INCLUDES_JS (JSP → Js or Jsp)
 
-**⚠️ Important :** La relation `INCLUDES_JS` peut pointer vers :
-- Un nœud `:Js` pour un fichier JavaScript standard (.js)
-- Un nœud `:Jsp` pour un fichier JSP dynamique (.jsp/.jspx/.jspf) qui génère du JavaScript
+`INCLUDES_JS` can point to:
+- A `:Js` node for a standard JavaScript file (.js)
+- A `:Jsp` node for a dynamic JSP file (.jsp/.jspx/.jspf) that generates JavaScript
 
 ```cypher
-# Exemple: Trouver tous les scripts inclus (JS ou JSP)
 MATCH (jsp:Jsp)-[:INCLUDES_JS]->(target)
 WHERE jsp.file_path CONTAINS 'index.jsp'
 RETURN labels(target), target.file_path
 ```
 
-**Cas d'usage JSP dynamique :**
-```html
-<!-- JSP incluant un fichier JSP comme script -->
-<script src="/common/config.jsp"></script>
-<script src="/fragments/translations.jspx"></script>
-```
-
-Ces fichiers `.jsp`/`.jspx` génèrent du JavaScript dynamiquement (configuration serveur, traductions, données contextuelles).
-
 ### INCLUDES_JSP (JSP → JSP)
 
 ```
 INCLUDES_JSP {
-  type: "static|dynamic"           # <%@ include file > (static) ou <jsp:include> (dynamic)
+  type: "static|dynamic"   # <%@ include file > (static) or <jsp:include> (dynamic)
 }
 ```
 
 ---
 
-## 🔍 Patterns de requêtes essentiels
+## Essential Query Patterns
 
-### Trouver une fonction/classe par nom
+### Find a function/class by name
 
 ```cypher
 MATCH (f:Function {name: "getUser"})
@@ -177,26 +164,23 @@ MATCH (c:Class {name: "UserService"})
 RETURN c.id, c.file_path
 ```
 
-### Analyser signature de fonction
+### Analyze a function signature
 
 ```cypher
-# Paramètres d'une fonction
 MATCH (f:Function)-[:HAS_PARAM]->(p:Parameter)
 WHERE f.name = "getUser"
 RETURN p.name, p.node_type
 
-# Type de retour
 MATCH (f:Function)-[:RETURNS]->(t:Type)
 WHERE f.name = "getUser"
 RETURN t.name
 
-# Variables utilisées
 MATCH (f:Function)-[:USES]->(v:Variable)
 WHERE f.name = "processData"
 RETURN v.name, v.node_type
 ```
 
-### Appels directs
+### Direct calls
 
 ```cypher
 MATCH (caller:Function)-[:CALLS]->(callee:Function)
@@ -204,7 +188,7 @@ WHERE caller.name = "processData"
 RETURN DISTINCT callee.name
 ```
 
-### Appels transitifs (jusqu'à N niveaux)
+### Transitive calls (up to N levels)
 
 ```cypher
 MATCH (start:Function)-[:CALLS*1..5]->(end:Function)
@@ -212,7 +196,7 @@ WHERE start.name = "getUser"
 RETURN DISTINCT end.name, length(path) AS depth
 ```
 
-### Méthodes d'une classe
+### Methods of a class
 
 ```cypher
 MATCH (c:Class)-[:DEFINES|CONTAINS]->(f:Function)
@@ -220,7 +204,7 @@ WHERE c.name = "UserService"
 RETURN f.name, f.start_line
 ```
 
-### Classe et ses parents/enfants (héritage)
+### Class hierarchy
 
 ```cypher
 MATCH (child:Class)-[:EXTENDS]->(parent:Class)
@@ -232,10 +216,10 @@ WHERE iface.name = "IUserRepository"
 RETURN DISTINCT impl.name
 ```
 
-### Analyse JavaScript - Module et contenu
+### JavaScript - Module contents
 
 ```cypher
-MATCH (jsfile:JS)-[:CONTAINS]->(content:Class|Function)
+MATCH (jsfile:JS)-[:CONTAINS]->(content)
 WHERE jsfile.file_path CONTAINS "app.js"
 RETURN content.name, labels(content) AS type
 
@@ -245,38 +229,32 @@ AND NOT (()-[:CONTAINS]->(f))
 RETURN f.name AS top_level_function
 ```
 
-### Analyse JavaScript - Object Literals
+### JavaScript - Object Literals
 
 ```cypher
-# Trouver les object literals et leurs méthodes
 MATCH (obj:Module {object_literal: true})-[:DEFINES]->(method:Function)
 RETURN obj.name AS object_name, method.name AS method_name
 
-# Exemple : trouver toutes les méthodes d'un object literal spécifique
 MATCH (obj:Module)-[:DEFINES]->(m:Function {object_method: true})
 WHERE obj.name = "compasNotification"
 RETURN m.name, m.file_path
 ```
 
-### Analyse JSP - Inclusions et Imports Java
+### JSP - Inclusions and Java imports
 
 ```cypher
-# JSP avec inclusions JS/CSS/JSP
 MATCH (jsp:Jsp)-[:INCLUDES_JS|INCLUDES_CSS|INCLUDES_JSP]->(target)
 WHERE jsp.file_path CONTAINS "index"
-RETURN jsp.file_path, type(last(relationships)), target
+RETURN jsp.file_path, type(last(relationships(path))), target
 
-# Inclusions transitives (JSP → JSP → JSP...)
 MATCH path = (jsp:Jsp)-[:INCLUDES_JSP*]->(child:Jsp)
 WHERE jsp.file_path CONTAINS "layout"
 RETURN path
 
-# ⭐ NOUVEAU: Classes Java importées par une JSP
 MATCH (jsp:Jsp)-[:IMPORTS]->(cls:Class)
 WHERE jsp.file_path CONTAINS "gestion_ep"
 RETURN jsp.file_path, cls.id, cls.metadata.qualified_name
 
-# Tous les JSPF (fragments) utilisés par une page JSP (directs et transitifs)
 MATCH path = (main:Jsp)-[:INCLUDES_JSP*1..10]->(jspf:Jsp)
 WHERE main.file_path ENDS WITH 'main.jsp'
   AND jspf.file_path ENDS WITH '.jspf'
@@ -288,31 +266,26 @@ ORDER BY min_depth, jspf_path
 ### WebSphere - Configuration
 
 ```cypher
-# Servlets configurés avec leurs classes d'implémentation
 MATCH (xml:WebXml)-[:CONFIGURES]->(servlet:Servlet)-[:IMPLEMENTED_BY]->(cls:Class)
 RETURN servlet.name, servlet.metadata.`url-pattern`, cls.id, cls.file_path
 
-# Trouver les servlets par url-pattern
 MATCH (s:Servlet)-[:IMPLEMENTED_BY]->(c:Class)
 WHERE s.metadata.`url-pattern` IN ['/ErreurSigma.srv', '/TarifPjServlet.srv']
 RETURN s.metadata.`url-pattern` AS url, c.id AS implementing_class
 
-# Portlet → Service → DAO chain
 MATCH (portlet:Portlet)-[:IMPLEMENTED_BY]->(cls:Class)
 MATCH (cls)-[:CONTAINS]->(method:Function)-[:CALLS]->(service:Function)-[:CALLS]->(dao:Function)
 RETURN portlet.name, service.name, dao.name
 
-# Portlet rend JSP
 MATCH (portlet:Portlet)-[:RENDERS]->(jsp:Jsp)
 RETURN portlet.name, jsp.file_path
 
-# Filters par url-pattern
 MATCH (filter:Filter)-[:IMPLEMENTED_BY]->(cls:Class)
 WHERE filter.metadata.`url-pattern` = "/*"
 RETURN filter.name, cls.id
 ```
 
-### Trouver tous les nœuds d'un langage
+### All nodes for a given language
 
 ```cypher
 MATCH (n)
@@ -324,7 +297,7 @@ WHERE f.language = "javascript"
 RETURN COUNT(*)
 ```
 
-### Dépendances et graphe d'appels complet
+### Full call graph
 
 ```cypher
 MATCH (start:Function)
@@ -342,7 +315,7 @@ AND NOT EXISTS((callee)-[:CALLS]->())
 RETURN DISTINCT callee.name AS leaf_function
 ```
 
-### Localiser du code
+### Locate code
 
 ```cypher
 MATCH (n)
@@ -358,38 +331,36 @@ RETURN f.name, f.file_path, f.start_line
 
 ---
 
-## 📌 Règles importantes
+## Important Rules
 
-1. **Tous les nœuds héritent de `:Node`** : utilise `MATCH (n:Node)` pour requête universelle
-2. **Les IDs sont qualifiés** : `com.app.UserService.getUser` pour Java, `controllers::getUser` pour JS
-3. **JS files = `:JS` nodes** : les inclusions JSP pointent sur `:JS` nodes, pas sur les fonctions/classes
-4. **Métadonnées dans les relations** : Utilise `apoc.get()` ou accès direct si métadonnées stockées
-5. **CONTAINS pour la hiérarchie** : Class/JS/Module CONTAINS Function/Class
-6. **CALLS pour les appels** : Toujours Function CALLS Function (pas de nœuds intermédiaires)
+1. **All nodes inherit `:Node`** — use `MATCH (n:Node)` for universal queries
+2. **IDs are qualified** — `com.app.UserService.getUser` for Java, `controllers::getUser` for JS
+3. **JS files = `:JS` nodes** — JSP inclusions point to `:JS` nodes, not functions/classes
+4. **Metadata on relations** — use direct property access or `apoc.get()`
+5. **CONTAINS for hierarchy** — Class/JS/Module CONTAINS Function/Class
+6. **CALLS for calls** — always Function CALLS Function (no intermediate nodes)
 
 ---
 
-## 🚀 Optimisations Cypher
+## Cypher Optimizations
 
 ```cypher
--- Utiliser WHERE avec index plutôt que MATCH
+-- Use WHERE with index instead of inline properties
 MATCH (n:Function) WHERE n.name = "getUser"
--- Au lieu de
-MATCH (n:Function {name: "getUser"})
 
--- Limiter les résultats
+-- Limit results
 MATCH (...) RETURN ... LIMIT 100
 
--- Compter avant de retourner
+-- Count before returning
 MATCH (c:Class)-[:CONTAINS]->(f:Function)
 WHERE c.name = "UserService"
 RETURN COUNT(f) AS method_count
 
--- Distinct pour éviter doublons
+-- DISTINCT to avoid duplicates
 MATCH (f:Function)-[:CALLS*]->(g:Function)
 RETURN DISTINCT g.name
 
--- EXISTS pour vérifications rapides
+-- EXISTS for fast checks
 MATCH (c:Class)
 WHERE EXISTS((c)-[:CONTAINS]->())
 RETURN c.name
@@ -397,58 +368,56 @@ RETURN c.name
 
 ---
 
-## 🔑 Cas courants pour agents IA
+## Common Patterns for AI Agents
 
-| Objectif | Pattern |
-|----------|---------|
-| Tracer l'appel d'une fonction | `MATCH (start:Function)-[:CALLS*1..N]->(end:Function) WHERE start.name = "X"` |
-| Trouver qui appelle une fonction | `MATCH (caller:Function)-[:CALLS*]->(target:Function) WHERE target.name = "X"` |
-| Analyser une classe | `MATCH (c:Class {name: "X"})-[:CONTAINS\|DEFINES]->(f:Function)` |
-| Signature de fonction | `MATCH (f:Function)-[:HAS_PARAM\|RETURNS]->(p) WHERE f.name = "X"` |
-| Analyser un fichier JS | `MATCH (js:JS)-[:CONTAINS]->(content) WHERE js.file_path CONTAINS "X"` |
-| Analyser une JSP | `MATCH (jsp:Jsp)-[:INCLUDES_JS\|INCLUDES_JSP\|INCLUDES_CSS]->(target) RETURN labels(target), target.file_path` |
-| ⭐ Classes importées par JSP | `MATCH (jsp:Jsp)-[:IMPORTS]->(cls:Class) WHERE jsp.file_path CONTAINS "gestion_ep"` |
-| ⭐ JSPF inclus transitifs | `MATCH path = (jsp:Jsp)-[:INCLUDES_JSP*]->(jspf:Jsp) WHERE jspf.file_path ENDS WITH '.jspf'` |
-| Analyser un Servlet | `MATCH (xml:WebXml)-[:CONFIGURES\|DECLARES]->(servlet:Servlet)` |
-| Chain Portlet → Service → DAO | `MATCH (p:Portlet)-[c1:CALLS]->(s)-[c2:CALLS]->(d) WHERE c1.call_type="service" AND c2.call_type="dao"` |
-| Appels AJAX | `MATCH ()-[c:CALservlet:Servlet)-[:IMPLEMENTED_BY]->(cls:Class) WHERE servlet.metadata.\`url-pattern\` = '/user/*'` |
-| Analyser un Portlet | `MATCH (portlet:Portlet)-[:IMPLEMENTED_BY]->(cls:Class)` |
-| Chain Portlet → Service → DAO | `MATCH (p:Portlet)-[:IMPLEMENTED_BY]->(c:Class)-[:CONTAINS]->(m)-[:CALLS]->(s)-[:CALLS]->(d)
-| Filtres de Servlet | `MATCH (filter:Filter)-[:FILTERS]->(servlet:Servlet)` |
+| Goal | Pattern |
+|------|---------|
+| Trace function calls | `MATCH (start:Function)-[:CALLS*1..N]->(end:Function) WHERE start.name = "X"` |
+| Find callers of a function | `MATCH (caller:Function)-[:CALLS*]->(target:Function) WHERE target.name = "X"` |
+| Analyze a class | `MATCH (c:Class {name: "X"})-[:CONTAINS\|DEFINES]->(f:Function)` |
+| Function signature | `MATCH (f:Function)-[:HAS_PARAM\|RETURNS]->(p) WHERE f.name = "X"` |
+| Analyze a JS file | `MATCH (js:JS)-[:CONTAINS]->(content) WHERE js.file_path CONTAINS "X"` |
+| Analyze a JSP | `MATCH (jsp:Jsp)-[:INCLUDES_JS\|INCLUDES_JSP\|INCLUDES_CSS]->(target) RETURN labels(target), target.file_path` |
+| Java classes imported by JSP | `MATCH (jsp:Jsp)-[:IMPORTS]->(cls:Class) WHERE jsp.file_path CONTAINS "X"` |
+| Transitive JSPF includes | `MATCH path = (jsp:Jsp)-[:INCLUDES_JSP*]->(jspf:Jsp) WHERE jspf.file_path ENDS WITH '.jspf'` |
+| Analyze a Servlet | `MATCH (xml:WebXml)-[:CONFIGURES]->(servlet:Servlet)-[:IMPLEMENTED_BY]->(cls:Class)` |
+| Portlet → Service → DAO chain | `MATCH (p:Portlet)-[:IMPLEMENTED_BY]->(c:Class)-[:CONTAINS]->(m)-[:CALLS]->(s)-[:CALLS]->(d)` |
+| AJAX calls | `MATCH ()-[c:CALLS]->() WHERE c.call_type = "ajax"` |
+| Analyze a Portlet | `MATCH (portlet:Portlet)-[:IMPLEMENTED_BY]->(cls:Class)` |
+| Servlet by url-pattern | `MATCH (s:Servlet)-[:IMPLEMENTED_BY]->(c:Class) WHERE s.metadata.\`url-pattern\` = '/user/*'` |
 | Impact analysis | `MATCH (n:Function)-[:CALLS*1..N]->(target) WHERE n.name = "X" RETURN COUNT(*)` |
 | Coverage | `MATCH (f:Function) WHERE f.language = "java" RETURN COUNT(*)` |
 
 ---
 
-## 📊 Résumé des labels par catégorie
+## Labels by Category
 
-**Code Java :** `:Function`, `:Class`, `:Interface`, `:Package`, `:Variable`, `:Parameter`  
-**Code JavaScript :** `:Function`, `:Class`, `:JS`, `:Import`, `:Variable`  
-**WebSphere :** `:Servlet`, `:Portlet`, `:Filter`, `:WebXml`, `:PortletXml`  
-**Web :** `:Jsp`, `:JS` (fichiers)  
-**Types :** `:Type`, `:Trait`  
+**Java:** `:Function`, `:Class`, `:Interface`, `:Package`, `:Variable`, `:Parameter`
+**JavaScript:** `:Function`, `:Class`, `:JS`, `:Import`, `:Variable`
+**WebSphere:** `:Servlet`, `:Portlet`, `:Filter`, `:WebXml`, `:PortletXml`
+**Web:** `:Jsp`, `:JS`
+**Types:** `:Type`, `:Trait`
+**Other:** `:Expression`, `:Operator`, `:Module`
 
-**Note importante sur les Servlets/Portlets/Filters :**
-- `metadata.class` : FQN de la classe Java d'implémentation
-- `metadata.url-pattern` : Pattern d'URL (ex: `/user/*`, `*.srv`, `/*`)
-- Relation `IMPLEMENTED_BY` : Pointe vers le nœud `:Class` Java correspondant
-
-**Autres :** `:Expression`, `:Operator`, `:Module`
-
----
-
-## 🔗 Résumé des relations par type
-
-**Appels :** `CALLS` (avec call_type: standard|ajax|service|dao), `TRIGGERS`  
-**Structure :** `DEFINES`, `CONIMPLEMENTED_BY, `RETURNS`  
-**Héritage :** `EXTENDS`, `IMPLEMENTS`, `IMPLEMENTED_BY`  
-**Dépendances :** `IMPORTS`, `USES`, `REFERENCES`, `DEPENDS_ON`  
-**Types :** `HAS_TYPE`, `DECLARE_TYPE`  
-**Assignation :** `ASSIGNED_BY`, `EXPORTS`  
-**WebSphere :** `CONFIGURES`, `DECLARES`, `FILTERS`, `RENDERS`, `NOTIFIES`  
-**JSP :** `INCLUDES_JS`, `INCLUDES_CSS`, `INCLUDES_JSP`, `BINDS_DATA`  
-**DOM :** `TARGETS_ELEMENT`
+**Note on Servlets/Portlets/Filters:**
+- `metadata.class` : FQN of the Java implementation class
+- `metadata.url-pattern` : URL pattern (e.g. `/user/*`, `*.srv`, `/*`)
+- `IMPLEMENTED_BY` relation: points to the corresponding Java `:Class` node
 
 ---
 
-*Référence rapide pour agents IA - Mise à jour: January 19, 2026*
+## Relations Summary
+
+**Calls:** `CALLS` (with call_type: standard|ajax|service|dao), `TRIGGERS`
+**Structure:** `DEFINES`, `CONTAINS`, `HAS_PARAM`, `RETURNS`
+**Inheritance:** `EXTENDS`, `IMPLEMENTS`, `IMPLEMENTED_BY`
+**Dependencies:** `IMPORTS`, `USES`, `REFERENCES`, `DEPENDS_ON`
+**Types:** `HAS_TYPE`, `DECLARE_TYPE`
+**Assignment:** `ASSIGNED_BY`, `EXPORTS`
+**WebSphere:** `CONFIGURES`, `DECLARES`, `FILTERS`, `RENDERS`, `NOTIFIES`
+**JSP:** `INCLUDES_JS`, `INCLUDES_CSS`, `INCLUDES_JSP`, `BINDS_DATA`
+**DOM:** `TARGETS_ELEMENT`
+
+---
+
+*Quick reference for AI agents*
