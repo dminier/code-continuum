@@ -53,6 +53,7 @@ RETURN f.name, g.name
 |---|---|---|
 | Java | `.java` | Specialized (classes, methods, imports, fields) |
 | JavaScript / TypeScript | `.js` `.jsx` `.ts` `.tsx` | Specialized (classes, methods) |
+| Rust | `.rs` | Specialized (functions, structs, enums, traits, impl blocks, use declarations) |
 | JSP / JSPX / JSPF | `.jsp` `.jspx` `.jspf` | Specialized (include relations) |
 | XML (WebSphere Portal) | `portlet.xml` `web.xml` | Specialized (servlet/portlet mappings) |
 | HTML | `.html` `.htm` | Indexed only (no extraction) |
