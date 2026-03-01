@@ -6,7 +6,7 @@
     },
     "code-continuum": {
       "type": "http",
-      "url": "http://mcp-code-continuum:8001/api/mcp/"
+      "url": "http://localhost:8001/api/mcp/"
     }
   }
 }

@@ -64,13 +64,10 @@ async fn main() {
     println!(
         "\n{}",
         r#"
-    ╔═╗┌─┐┌┬┐┌─┐  ╔═╗┬─┐┌─┐┌─┐┬ ┬  ╦═╗╔═╗╔═╗
-    ║  │ │ ││├┤   ║ ╦├┬┘├─┤├─┘├─┤  ╠╦╝╠═╣║ ╦
-    ╚═╝└─┘─┴┘└─┘  ╚═╝┴└─┴ ┴┴  ┴ ┴  ╩╚═╩ ┴╚═╝
+    CODE CONTINUUM 
 
     Semantic Code Analysis & Knowledge Graph Extraction
     Powered by Tree-Sitter + Neo4j + Rust
-    Implemented by David Minier 
 
         ┌─────────────────────┐
         │ EnhanceUnderstanding│
