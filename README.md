@@ -14,19 +14,20 @@ Static analysis tool that builds a semantic graph from source code and exposes i
 ```
 Source code (mounted at /app/data)
     │
-    │  MCP tool: add_project
-    ▼
-code-continuum MCP (port 8001)         ← add/remove projects
-    │  Tree-Sitter AST parsing
-    │  Cypher INSERT (project_path, project_name on every node/relation)
+    ├─→ code-continuum MCP (port 8001)
+    │   ├─ list_projects
+    │   ├─ add_project (Tree-Sitter AST parsing + Cypher INSERT)
+    │   └─ remove_project
+    │
     ▼
 Neo4j (bolt://localhost:7687)
     ▲
-    │  Cypher queries
-Neo4j MCP (port 8000)                  ← query the graph
     │
-    ▼
-AI agents (Claude, Copilot, …)
+    └─ Neo4j MCP (port 8000)
+       └─ Cypher queries
+            │
+            ▼
+        AI agents (Claude, Copilot, …)
 ```
 
 ## MCP Integration
