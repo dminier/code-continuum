@@ -26,5 +26,8 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/home/vscode/.local/bin:${PATH}"
 ENV UV_NATIVE_TLS=true
 
+# Port MCP HTTP (mode --mcp)
+EXPOSE 8001
+
 # Default command
 CMD ["/bin/bash"]

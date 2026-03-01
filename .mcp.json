@@ -3,6 +3,10 @@
     "neo4j": {
       "type": "http",
       "url": "http://mcp-neo4j:8000/api/mcp/"
+    },
+    "code-continuum": {
+      "type": "http",
+      "url": "http://mcp-code-continuum:8001/api/mcp/"
     }
   }
 }

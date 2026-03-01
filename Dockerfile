@@ -88,6 +88,9 @@ ENV NEO4J_USER=neo4j
 ENV NEO4J_PASSWORD=production_password_change_me
 ENV RUST_LOG=info
 
+# Port MCP HTTP (mode --mcp)
+EXPOSE 8001
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD test -f /usr/local/bin/code-continuum || exit 1

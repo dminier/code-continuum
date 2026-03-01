@@ -1,29 +1,146 @@
 # code-continuum
 
-Static analysis tool that builds a semantic graph from source code and exposes it to AI agents via an MCP server.
+Static analysis tool that builds a semantic graph from source code and exposes it to AI agents via MCP servers.
 
 ## What it does
 
 1. Parses source code using Tree-Sitter
 2. Builds a semantic graph (classes, functions, imports, dependencies)
-3. Stores the graph in Neo4j
-4. Exposes it over HTTP via an MCP server so AI agents can query it with Cypher
+3. Stores the graph in Neo4j, tagged by project
+4. Exposes two MCP servers so AI agents can manage projects and query the graph
 
 ## Architecture
 
 ```
-Source code
-    ↓  Tree-Sitter AST parsing
-Semantic graph
-    ↓  Cypher INSERT 
+Source code (mounted at /app/data)
+    │
+    │  MCP tool: add_project
+    ▼
+code-continuum MCP (port 8001)         ← add/remove projects
+    │  Tree-Sitter AST parsing
+    │  Cypher INSERT (project_path, project_name on every node/relation)
+    ▼
 Neo4j (bolt://localhost:7687)
-    ↓  HTTP/JSON (~100ms)
-MCP server (http://localhost:8000/api/mcp/)
-    ↓
-AI agents (Claude, Copilot, RAGIT, ...)
+    ▲
+    │  Cypher queries
+Neo4j MCP (port 8000)                  ← query the graph
+    │
+    ▼
+AI agents (Claude, Copilot, …)
+```
+
+## MCP Integration
+
+Two MCP servers run alongside Neo4j:
+
+| Service | Port | Purpose |
+|---|---|---|
+| `mcp-code-continuum` | 8001 | Add / remove projects in the graph |
+| `mcp-neo4j` | 8000 | Query the graph with Cypher |
+
+The `.mcp.json` at the root wires both into Claude Code automatically:
+
+```json
+{
+  "mcpServers": {
+    "neo4j": {
+      "type": "http",
+      "url": "http://mcp-neo4j:8000/api/mcp/"
+    },
+    "code-continuum": {
+      "type": "http",
+      "url": "http://mcp-code-continuum:8001/api/mcp/"
+    }
+  }
+}
+```
+
+### Tools — code-continuum MCP
+
+#### `add_project`
+
+Analyses a source directory and inserts its nodes/relations into Neo4j.
+Does **not** clear the whole database — each project is isolated by `project_path` / `project_name`.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `project_path` | string | ✅ | Absolute path to the project under `/app/data` |
+| `project_name` | string | | Friendly name (defaults to last segment of the path) |
+| `include_packages` | string | | CSV filter: only index matching packages (e.g. `com.example,org.app`) |
+| `clear_project` | boolean | | Delete existing data for this project before re-indexing (default: `false`) |
+
+#### `remove_project`
+
+Deletes all nodes and relations belonging to a project.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `project_path` | string | ✅ | Must match the `project_path` used when adding |
+
+### Tools — Neo4j MCP
+
+Once a project is indexed, query it with Cypher through the `neo4j` MCP server:
+
+```cypher
+-- All functions of a project
+MATCH (f:Function {project_name: "my-project"}) RETURN f.name, f.file_path
+
+-- Call chains
+MATCH (a:Function)-[:CALLS*1..5]->(b:Function)
+WHERE a.project_name = "my-project"
+RETURN a.name, b.name
+
+-- Cross-project: find classes shared by two projects
+MATCH (n:Node) WHERE n.name = "UserService"
+RETURN n.project_name, n.file_path
 ```
 
 ## Quick start
+
+### 1 — Start the stack
+
+```bash
+# Copy and fill in the password
+cp .env.example .env
+
+# Start Neo4j + both MCP servers
+docker compose up -d neo4j mcp-neo4j mcp-code-continuum
+```
+
+### 2 — Mount your codebase
+
+Set `CODE_PATH` in `.env` (or inline) to point to the project you want to analyse:
+
+```bash
+CODE_PATH=/path/to/your/project docker compose up -d
+```
+
+The directory is mounted read-only at `/app/data` inside the container.
+
+### 3 — Let Claude analyse your project
+
+In Claude Code, use the `add_project` tool:
+
+```
+add_project(
+  project_path = "/app/data",
+  project_name = "my-project"
+)
+```
+
+Then query with the `neo4j` tool:
+
+```
+Run Cypher: MATCH (c:Class {project_name: "my-project"}) RETURN c.name LIMIT 20
+```
+
+### 4 — Remove a project
+
+```
+remove_project(project_path = "/app/data")
+```
+
+## Development
 
 The project ships with a Dev Container — no local setup required.
 
@@ -31,21 +148,36 @@ The project ships with a Dev Container — no local setup required.
 git clone <repo>
 cd code-continuum
 # Open in VS Code → "Reopen in Container"
-cargo test
 ```
 
-Rust, Cargo, and Neo4j are all pre-configured in the container.
-
-## Usage
+### Run tests
 
 ```bash
-# Analyze a source directory
+# Unit and extraction tests (no Neo4j needed)
+cargo test
+
+# MCP E2E tests (Neo4j runs automatically in the devcontainer)
+cargo test --test integration_mcp -- --ignored --nocapture
+
+# All ignored tests (Neo4j required)
+cargo test -- --ignored --nocapture
+```
+
+### Analyse locally (development only)
+
+```bash
+# Direct CLI — clears the whole database and imports the directory
 cargo run -- examples/backend/java
 
-# Query the graph (Neo4j browser at http://localhost:7474)
-MATCH (f:Function {name: "processData"})-[:CALLS*1..5]->(g:Function)
-RETURN f.name, g.name
+# With package filter
+INCLUDE_PACKAGES=com.example,org.myapp cargo run -- /path/to/project
+
+# Query (Neo4j browser at http://localhost:7474)
+MATCH (f:Function)-[:CALLS*1..5]->(g:Function) RETURN f.name, g.name
 ```
+
+> **Note:** The CLI batch mode clears the entire database on each run.
+> For multi-project use, always go through the MCP `add_project` tool instead.
 
 ## Supported languages
 
@@ -62,26 +194,22 @@ RETURN f.name, g.name
 
 The project ships custom Claude Code sub-agents in [.claude/agents/](.claude/agents/).
 
-### Example — retrodoc
+### retrodoc
 
 The [`retrodoc`](.claude/agents/retrodoc.md) agent generates complete reverse documentation
-by querying the live Neo4j graph and producing five Mermaid diagrams from actual data.
-
-**Invoke it in Claude Code:**
+by querying the live Neo4j graph and producing Mermaid diagrams from actual data.
 
 ```
 generate the retrodoc for this project
 ```
 
-Claude will automatically dispatch to the `retrodoc` sub-agent, which:
-
-1. Runs `cargo run -- .` to self-import the codebase into Neo4j
-2. Executes 7 discovery Cypher queries (module hierarchy, call chains, data structures, …)
-3. Synthesizes five Mermaid diagrams from live graph data
+The agent:
+1. Calls `add_project` via the MCP server to self-import the codebase into Neo4j
+2. Executes discovery Cypher queries (module hierarchy, call chains, data structures, …)
+3. Synthesizes Mermaid diagrams from live graph data
 4. Writes the result to `doc/RETRODOC.md`
 
 **Output:** [doc/RETRODOC_GENERATED.md](doc/RETRODOC_GENERATED.md)
- 
 
 ---
 
@@ -91,20 +219,25 @@ Claude will automatically dispatch to the `retrodoc` sub-agent, which:
 |---|---|
 | [doc/SCHEMA.md](doc/SCHEMA.md) | Full Neo4j schema reference (nodes, relations, properties, query examples) |
 | [doc/SCHEMA_IA.md](doc/SCHEMA_IA.md) | Condensed Cypher cheatsheet — intended as AI agent knowledge base |
-| [doc/RETRODOC_GENERATED.md](doc/RETRODOC_GENERATED.md) | Reverse documentation generated by the retrodoc agent (architecture diagrams, call graph, module inventory) |
+| [doc/RETRODOC_GENERATED.md](doc/RETRODOC_GENERATED.md) | Reverse documentation generated by the retrodoc agent |
 
 ## Project structure
 
 ```
 src/
 ├── analysis/           # Orchestration
-├── semantic_graph/     # Core types (graph nodes, edges, DSL)
+├── semantic_graph/     # Core types (graph nodes, edges, Neo4j export)
 ├── graph_builder/      # AST extraction per language
-├── neo4j_connectivity/ # Neo4j export
-├── mcp/                # MCP HTTP server
+├── neo4j_connectivity/ # Neo4j connection helper
+├── mcp/                # MCP HTTP server (add_project, remove_project)
 └── ...
-tests/                  # Integration tests
-.devcontainer/          # Docker setup (Rust + Neo4j)
+tests/
+├── mcp/                # E2E tests for the MCP endpoint
+├── neo4j/              # Neo4j integration tests
+├── extraction/         # Parsing / extraction unit tests
+└── e2e/                # Full pipeline tests
+.devcontainer/          # Dev Container (Rust + Neo4j)
+docker-compose.yml      # Production: neo4j + mcp-neo4j + mcp-code-continuum
 ```
 
 ---
@@ -113,11 +246,10 @@ tests/                  # Integration tests
 
 I tested this approach on a real Java WebSphere Portal project during a legacy migration. The AST + Graph + Agentic combo is incredibly powerful — the AI maps the application architecture almost instantly and generates Cypher queries that would take a human forever 😄.
 
-This is just the core technique. The full migration relies on multi-agent orchestration (retro-spec → new API spec → code generation), which is a whole other story. In the schema, relations like CALL_BACKEND are enriched by agents, because it’s too complex to capture all backend calls with Tree‑Sitter or regex alone. For projects like WebSphere Portal, this tool shines at quickly identifying all session-related impacts, a real headache if sessions have been heavily used.
+This is just the core technique. The full migration relies on multi-agent orchestration (retro-spec → new API spec → code generation), which is a whole other story. In the schema, relations like CALL_BACKEND are enriched by agents, because it's too complex to capture all backend calls with Tree‑Sitter or regex alone. For projects like WebSphere Portal, this tool shines at quickly identifying all session-related impacts, a real headache if sessions have been heavily used.
 
 Another experimented use case is API retrodocumentation. By giving the AI a complete view of the sequence diagram, it can retrodocument both technically and functionally. The diagram acts as a guiding thread, preventing the AI from getting lost in the complexity of the system.
 
+The next DSL: **COBOL** — the king of legacies.
 
-The next DSL : **COBOL** — the king of legacies.
-
-If you’re interested in this approach or want to discuss it further, feel free to contact me and exchange ideas.
+If you're interested in this approach or want to discuss it further, feel free to contact me and exchange ideas.

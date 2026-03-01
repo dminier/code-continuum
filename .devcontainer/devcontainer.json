@@ -31,19 +31,16 @@
 			"mcp": {
 				"servers": {
 					"code-continuum": {
-						"command": "bash",
-						"args": ["-c", "cd /workspaces/code-continuum && ./target/debug/code-continuum --mcp"],
-						"env": {
-							"RUST_LOG": "info"
-						}
+						"type": "http",
+						"url": "http://localhost:8001/api/mcp/"
 					}
 				}
 			}
 		}
 	},
 	
-	// Forward ports for Neo4j
-	"forwardPorts": [7474, 7687],
+	// Forward ports
+	"forwardPorts": [7474, 7687, 8001],
 	"portsAttributes": {
 		"7474": {
 			"label": "Neo4j Browser",
@@ -51,6 +48,10 @@
 		},
 		"7687": {
 			"label": "Neo4j Bolt",
+			"onAutoForward": "silent"
+		},
+		"8001": {
+			"label": "code-continuum MCP",
 			"onAutoForward": "silent"
 		}
 	},
