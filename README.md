@@ -78,7 +78,7 @@ Two MCP servers run alongside Neo4j:
 
 #### `list_projects`
 
-Énumère tous les projets disponibles (sous-dossiers) montés sous CODE_PATH (`/app/data`).
+Lists all available projects (subdirectories) mounted under CODE_PATH (`/app/data`).
 
 Use this first to discover what projects are available, then pass a project name to `add_project`.
 
