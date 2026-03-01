@@ -89,6 +89,32 @@ graph TD
 
 > `url-pattern` is stored in node metadata for Servlet and Filter nodes.
 
+### Rust Ecosystem
+
+```mermaid
+graph TD
+    RMod["Module (fichier/mod)"]
+    Struct["Class (struct)"]
+    Enum["Type (enum)"]
+    Trait["Trait"]
+    Func["Function"]
+    Import["Import (use)"]
+    RMod -->|CONTAINS| Struct
+    RMod -->|CONTAINS| Enum
+    RMod -->|CONTAINS| Trait
+    RMod -->|CONTAINS| Func
+    RMod -->|CONTAINS| RMod
+    Trait -->|CONTAINS| Func
+    Struct -->|CONTAINS| Func
+    Func -->|CALLS| Func
+
+    style Enum fill:#e8f4fd
+    style Trait fill:#e1ffe1
+```
+
+> En Rust, les blocs `impl` attachent des méthodes à une struct — ces fonctions apparaissent via `CONTAINS` depuis le nœud `:Class` (la struct) vers les nœuds `:Function`.
+> Les blocs `mod` inline créent des nœuds `:Module` imbriqués reliés au module fichier via `CONTAINS`.
+
 ---
 
 ## Node Labels
@@ -482,6 +508,180 @@ RETURN portlet.name, jsp.file_path
 MATCH (filter:Filter)-[:IMPLEMENTED_BY]->(cls:Class)
 WHERE filter.name = "AuthFilter"
 RETURN filter.metadata.`url-pattern`, cls.id
+```
+
+---
+
+## RUST
+
+### Typical structure
+
+```
+Module: src/analysis/executor.rs
+  ├─ Import: crate::semantic_graph::Neo4jExporter
+  ├─ Import: crate::graph_builder::MultiLanguageGraphBuilder
+  ├─ Function: detect_language(file_path)
+  │   └─ CALLS → DslRegistry::detect_language_from_path()
+  ├─ Function: analyze_file(builder, unified_graph, file_path, _root_dir, report)
+  │   ├─ CALLS → detect_language()
+  │   └─ CALLS → builder::build_graph()
+  └─ Function: analyze_repository_with_filter(path, filter)
+      ├─ CALLS → collect_source_files()
+      ├─ CALLS → analyze_file() [loop]
+      ├─ CALLS → resolve_calls_global()
+      └─ CALLS → export_graph()
+
+Module: src/graph_builder/builder.rs
+  └─ Class: MultiLanguageGraphBuilder (struct)
+      ├─ Function: new()
+      └─ Function: build_graph(language, ts_lang, source_code, file_path)
+```
+
+### Node IDs — Rust convention
+
+> ⚠️ Les chemins de fichiers dans les IDs Rust sont des chemins **absolus canonicalisés** (ex: `/workspaces/code-continuum/src/analysis/executor.rs`). Les exemples ci-dessous utilisent `...` comme abréviation du préfixe.
+
+| Type de nœud | Pattern d'ID | Exemple abrégé |
+|--------------|-------------|----------------|
+| Module (fichier) | `{file_path}::module` | `.../executor.rs::module` |
+| Module (inline `mod`) | `{file_path}::{ctx}::module:{name}` | `.../lib.rs::module:tests` |
+| Function | `{file_path}::{ctx}::function:{name}` | `.../executor.rs::function:detect_language` |
+| Function (impl block) | `{file_path}::{Struct}::function:{name}` | `.../builder.rs::MultiLanguageGraphBuilder::function:build_graph` |
+| Class (struct) | `{file_path}::class:{name}` | `.../builder.rs::class:MultiLanguageGraphBuilder` |
+| Type (enum) | `{file_path}::type:{name}` | `.../semantic_graph.rs::type:NodeKind` |
+| Trait | `{file_path}::trait:{name}` | `.../dsl.rs::trait:DslRegistry` |
+| Import | `{file_path}::import:{dotted_path}` | `.../executor.rs::import:crate.semantic_graph.Neo4jExporter` |
+
+### Example Rust nodes
+
+**Module (file-level)**
+```json
+{
+  "id": "/workspaces/code-continuum/src/analysis/executor.rs::module",
+  "name": "/workspaces/code-continuum/src/analysis/executor.rs",
+  "node_type": "Module",
+  "language": "rust",
+  "file_path": "/workspaces/code-continuum/src/analysis/executor.rs",
+  "start_line": 1,
+  "end_line": 1
+}
+```
+
+**Function**
+```json
+{
+  "id": "/workspaces/.../executor.rs::function:analyze_file",
+  "name": "analyze_file",
+  "node_type": "Function",
+  "language": "rust",
+  "file_path": "/workspaces/.../executor.rs",
+  "start_line": 17,
+  "end_line": 96
+}
+```
+
+**Struct (stored as Class)**
+```json
+{
+  "id": "/workspaces/.../builder.rs::class:MultiLanguageGraphBuilder",
+  "name": "MultiLanguageGraphBuilder",
+  "node_type": "Class",
+  "language": "rust",
+  "file_path": "/workspaces/.../builder.rs",
+  "metadata": { "kind": "struct" },
+  "start_line": 9,
+  "end_line": 9
+}
+```
+
+**Enum (stored as Type)**
+```json
+{
+  "id": "/workspaces/.../semantic_graph.rs::type:NodeKind",
+  "name": "NodeKind",
+  "node_type": "Type",
+  "language": "rust",
+  "file_path": "/workspaces/.../semantic_graph.rs",
+  "metadata": { "kind": "enum" },
+  "start_line": 21,
+  "end_line": 61
+}
+```
+
+**Trait**
+```json
+{
+  "id": "/workspaces/.../dsl.rs::trait:DslRegistry",
+  "name": "DslRegistry",
+  "node_type": "Trait",
+  "language": "rust",
+  "file_path": "/workspaces/.../dsl.rs",
+  "start_line": 1,
+  "end_line": 1
+}
+```
+
+**Import (use declaration)**
+```json
+{
+  "id": "/workspaces/.../executor.rs::import:crate.semantic_graph.Neo4jExporter",
+  "name": "crate::semantic_graph::Neo4jExporter",
+  "node_type": "Import",
+  "language": "rust",
+  "file_path": "/workspaces/.../executor.rs",
+  "metadata": { "import_path": "crate::semantic_graph::Neo4jExporter" }
+}
+```
+
+### Rust queries
+
+```cypher
+// Tous les modules Rust (fichiers analysés)
+MATCH (m:Module)
+WHERE m.language = 'rust'
+RETURN m.name, m.file_path
+ORDER BY m.name
+
+// Toutes les structs (Class avec metadata.kind = 'struct')
+MATCH (c:Class)
+WHERE c.language = 'rust'
+RETURN c.name, c.file_path, c.start_line
+
+// Tous les enums (Type avec metadata.kind = 'enum')
+MATCH (t:Type)
+WHERE t.language = 'rust'
+RETURN t.name, t.file_path
+
+// Tous les traits
+MATCH (tr:Trait)
+WHERE tr.language = 'rust'
+RETURN tr.name, tr.file_path
+
+// Méthodes d'un bloc impl (metadata.struct = nom de la struct)
+MATCH (f:Function)
+WHERE f.language = 'rust' AND f.metadata.struct IS NOT NULL
+RETURN f.name, f.metadata.struct AS struct_name, f.file_path
+
+// Call graph depuis une fonction Rust
+MATCH (caller:Function)-[:CALLS]->(callee:Function)
+WHERE caller.language = 'rust' AND caller.name = 'analyze_repository'
+RETURN callee.name, callee.file_path
+
+// Appels transitifs (profondeur jusqu'à 5)
+MATCH path = (start:Function)-[:CALLS*1..5]->(end:Function)
+WHERE start.name = 'analyze_repository' AND start.language = 'rust'
+RETURN DISTINCT end.name, end.file_path, length(path) AS depth
+ORDER BY depth
+
+// Imports d'un fichier Rust
+MATCH (i:Import)
+WHERE i.language = 'rust' AND i.file_path CONTAINS 'executor'
+RETURN i.name, i.metadata.import_path
+
+// Hiérarchie des modules (fichiers et mods imbriqués)
+MATCH (parent:Module)-[:CONTAINS]->(child:Module)
+WHERE parent.language = 'rust'
+RETURN parent.name, child.name
 ```
 
 ---

@@ -1,7 +1,7 @@
 // Test de l'extraction des url-pattern depuis web.xml et relations IMPLEMENTED_BY
 
-use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind, UnifiedGraph};
 use code_continuum::graph_builder::dsl_executor::websphere_portal::XmlExtractor;
+use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind, UnifiedGraph};
 
 #[test]
 fn test_servlet_url_pattern_extraction() {

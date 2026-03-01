@@ -17,9 +17,12 @@ RUN apt-get update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
+
+
 # Install uv (provides uvx) as non-root user and expose it on PATH
 USER vscode
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/home/vscode/.local/bin:${PATH}"
 ENV UV_NATIVE_TLS=true
 

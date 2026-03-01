@@ -6,7 +6,9 @@ use tree_sitter::Parser;
 fn parse_and_extract(source: &str) -> code_continuum::semantic_graph::semantic_graph::UnifiedGraph {
     let rust_lang = tree_sitter_rust::language();
     let mut parser = Parser::new();
-    parser.set_language(rust_lang).expect("Failed to set rust language");
+    parser
+        .set_language(rust_lang)
+        .expect("Failed to set rust language");
 
     let tree = parser.parse(source, None).expect("Parse failed");
     let mut executor = DslExecutor::new("test_file.rs".to_string());
@@ -244,18 +246,25 @@ fn main() {
     assert!(
         !calls_edges.is_empty(),
         "At least one CALLS edge should be detected. Edges: {:?}",
-        calls_edges.iter().map(|e| (&e.from, &e.to)).collect::<Vec<_>>()
+        calls_edges
+            .iter()
+            .map(|e| (&e.from, &e.to))
+            .collect::<Vec<_>>()
     );
 
     // Vérifier qu'un appel à 'helper' a été détecté
-    let has_helper_call = calls_edges
-        .iter()
-        .any(|e| e.to.contains("helper") || e.metadata.get("method_name").map(|s| s.as_str()) == Some("helper"));
+    let has_helper_call = calls_edges.iter().any(|e| {
+        e.to.contains("helper")
+            || e.metadata.get("method_name").map(|s| s.as_str()) == Some("helper")
+    });
 
     assert!(
         has_helper_call,
         "Call to 'helper' should be detected. CALLS edges: {:?}",
-        calls_edges.iter().map(|e| (&e.from, &e.to, &e.metadata)).collect::<Vec<_>>()
+        calls_edges
+            .iter()
+            .map(|e| (&e.from, &e.to, &e.metadata))
+            .collect::<Vec<_>>()
     );
 }
 
@@ -273,7 +282,11 @@ fn test_rust_module_node_created() {
     assert!(
         module_node.is_some(),
         "A Module node should be created for the file. Nodes: {:?}",
-        graph.nodes.values().map(|n| (&n.kind, &n.name)).collect::<Vec<_>>()
+        graph
+            .nodes
+            .values()
+            .map(|n| (&n.kind, &n.name))
+            .collect::<Vec<_>>()
     );
 }
 

@@ -58,7 +58,13 @@ impl DslExecutor {
             }
 
             // Extraire les relations extends et implements et les stocker en métadonnées
-            self.extract_class_inheritance_metadata(node, source, &class_name, &mut metadata, graph);
+            self.extract_class_inheritance_metadata(
+                node,
+                source,
+                &class_name,
+                &mut metadata,
+                graph,
+            );
 
             graph.add_node(SemanticNode {
                 id: class_id_for_node.clone(),
@@ -234,8 +240,7 @@ impl DslExecutor {
                             // Priorité : FQN explicite > import > même package
                             let interface_fqn = if interface_simple.contains('.') {
                                 interface_simple.clone()
-                            } else if let Some(fqn) =
-                                resolve_via_imports(&interface_simple, graph)
+                            } else if let Some(fqn) = resolve_via_imports(&interface_simple, graph)
                             {
                                 fqn
                             } else if let Some(pkg) = &current_package {

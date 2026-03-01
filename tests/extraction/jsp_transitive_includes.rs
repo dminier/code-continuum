@@ -21,9 +21,9 @@
 //! | fragment.jspf | sub/nested-fragment.jspf | static |
 //! | sidebar.jspf | sub/menu-items.jspf | static |
 
-use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind, UnifiedGraph};
 use code_continuum::encoding::read_text_with_encoding_detection;
 use code_continuum::graph_builder::MultiLanguageGraphBuilder;
+use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind, UnifiedGraph};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 

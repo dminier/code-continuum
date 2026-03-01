@@ -16,10 +16,10 @@ use tracing::debug;
 use tree_sitter::{Node, Tree};
 
 use self::dependency_resolver::{DependencyResolver, DependencyTarget};
+use crate::config::PackageFilter;
 use crate::semantic_graph::semantic_graph::{
     EdgeRelation, Location, NodeKind, SemanticEdge, SemanticNode, UnifiedGraph,
 };
-use crate::config::PackageFilter;
 
 /// Table de symboles pour résolution de type
 /// Mappe les noms de variables vers leurs types réels

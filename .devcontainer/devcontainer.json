@@ -12,7 +12,8 @@
 				"serayuzgur.crates",
 				"dustypomerleau.rust-syntax",
 				"tamasfe.even-better-toml",
-				"ms-vscode.makefile-tools"
+				"ms-vscode.makefile-tools",
+				"anthropic.claude-code"
 			],
 			"settings": {
 				"[rust]": {

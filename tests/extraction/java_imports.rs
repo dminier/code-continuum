@@ -2,9 +2,9 @@
 use std::fs;
 use std::path::PathBuf;
 
-use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind};
 use code_continuum::graph_builder::dsl_executor::dependency_resolver::DependencyResolver;
 use code_continuum::graph_builder::{DslExecutor, MultiLanguageGraphBuilder};
+use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind};
 
 #[test]
 fn test_java_imports_creates_import_relations() {

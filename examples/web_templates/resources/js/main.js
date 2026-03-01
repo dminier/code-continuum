@@ -6,7 +6,7 @@
 
 $(document).ready(function() {
     console.log('Initializing main application...');
-    
+
     // Initialize tabs
     $('#mainTabs a').on('click', function(e) {
         e.preventDefault();
@@ -14,11 +14,11 @@ $(document).ready(function() {
         $('.tab-content').hide();
         $(tabId).show();
     });
-    
+
     // Load initial data
     UserManager.loadUsers();
     DocumentManager.loadDocuments();
-    
+
     // Event handlers
     $('#add-user-btn').on('click', function() {
         console.log('Opening add user dialog');

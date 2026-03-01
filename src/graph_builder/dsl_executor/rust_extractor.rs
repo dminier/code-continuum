@@ -28,7 +28,13 @@ impl DslExecutor {
         self.traverse_rust(node, source, graph, &ctx);
     }
 
-    fn traverse_rust(&self, node: Node, source: &str, graph: &mut UnifiedGraph, ctx: &ScopeContext) {
+    fn traverse_rust(
+        &self,
+        node: Node,
+        source: &str,
+        graph: &mut UnifiedGraph,
+        ctx: &ScopeContext,
+    ) {
         match node.kind() {
             // fn name(...) -> ... { ... }
             "function_item" => {
@@ -244,7 +250,8 @@ impl DslExecutor {
 
             // use path::to::item;
             "use_declaration" => {
-                let import_path = self.get_text(node, source)
+                let import_path = self
+                    .get_text(node, source)
                     .trim_start_matches("use ")
                     .trim_end_matches(';')
                     .trim()
@@ -290,8 +297,7 @@ impl DslExecutor {
 
                         if !called_name.is_empty() {
                             let mut edge_metadata = HashMap::new();
-                            edge_metadata
-                                .insert("method_name".to_string(), called_name.clone());
+                            edge_metadata.insert("method_name".to_string(), called_name.clone());
 
                             debug!(
                                 caller = %caller_id,
@@ -324,8 +330,7 @@ impl DslExecutor {
 
                     if let Some(method_name) = method_name {
                         let mut edge_metadata = HashMap::new();
-                        edge_metadata
-                            .insert("method_name".to_string(), method_name.clone());
+                        edge_metadata.insert("method_name".to_string(), method_name.clone());
 
                         if let Some(recv) = &receiver_name {
                             edge_metadata.insert("object".to_string(), recv.clone());

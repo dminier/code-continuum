@@ -3,7 +3,12 @@
     "allow": [
       "Bash(cargo test:*)",
       "Bash(cargo test)",
-      "Bash(cargo build)"
+      "Bash(cargo build)",
+      "Bash(curl:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "neo4j"
+  ]
 }

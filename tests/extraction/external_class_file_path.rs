@@ -1,8 +1,8 @@
 // Test d'intégration pour vérifier que les classes externes n'ont pas de file_path incorrects
 // Bug: Les classes importées, superclasses et interfaces externes avaient le file_path du fichier les important
 
-use code_continuum::semantic_graph::semantic_graph::NodeKind;
 use code_continuum::graph_builder::MultiLanguageGraphBuilder;
+use code_continuum::semantic_graph::semantic_graph::NodeKind;
 
 #[test]
 fn test_external_class_no_file_path() {

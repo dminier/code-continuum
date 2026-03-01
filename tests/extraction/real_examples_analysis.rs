@@ -1,10 +1,10 @@
 // Test d'intégration end-to-end : Analyse réelle du répertoire examples/
 // Simule exactement le workflow de analyze_repository() sur des fichiers réels
 
-use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind, UnifiedGraph};
 use code_continuum::encoding::read_text_with_encoding_detection;
 use code_continuum::graph_builder::dsl_executor::dependency_resolver::DependencyResolver;
 use code_continuum::graph_builder::{DslExecutor, MultiLanguageGraphBuilder};
+use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind, UnifiedGraph};
 use std::path::{Path, PathBuf};
 
 /// Helper: Analyse un fichier Java réel

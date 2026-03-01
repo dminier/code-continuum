@@ -4,14 +4,13 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 
 mod analysis;
 mod cli;
-mod semantic_graph;
 mod config;
 mod encoding;
 mod file_discovery;
 mod graph_builder;
-mod mcp;
 mod neo4j_connectivity;
 mod reporting;
+mod semantic_graph;
 mod ui;
 
 use analysis::executor;
@@ -36,7 +35,6 @@ async fn main() {
             .with(console_layer)
             .init();
 
-        mcp::run_mcp_server().await;
         return;
     }
 
@@ -95,6 +93,7 @@ async fn main() {
             ║  Supported Languages:                         ║
             ║  • Java                                       ║
             ║  • JavaScript/TypeScript                      ║
+            ║  • Rust                                       ║
             ║  • JSP                                        ║
             ║  • Websphere Portal                           ║
             ║  • And More ...                               ║                   
@@ -146,5 +145,3 @@ async fn main() {
     // Analyser le répertoire avec le filtre
     executor::analyze_repository_with_filter(path, Some(filter)).await;
 }
-
- 

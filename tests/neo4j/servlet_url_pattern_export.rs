@@ -6,9 +6,9 @@
 // - When: On extrait et exporte vers Neo4j
 // - Then: Le nœud Servlet doit avoir la propriété url_pattern dans Neo4j
 
+use code_continuum::graph_builder::dsl_executor::websphere_portal::XmlExtractor;
 use code_continuum::semantic_graph::neo4j_exporter::Neo4jExporter;
 use code_continuum::semantic_graph::semantic_graph::{NodeKind, UnifiedGraph};
-use code_continuum::graph_builder::dsl_executor::websphere_portal::XmlExtractor;
 use neo4rs::{query, Graph};
 
 #[tokio::test]

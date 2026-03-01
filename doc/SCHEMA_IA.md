@@ -329,6 +329,37 @@ AND f.file_path CONTAINS "service"
 RETURN f.name, f.file_path, f.start_line
 ```
 
+### Rust — Modules, structs, enums, traits
+
+```cypher
+// Modules Rust (fichiers analysés)
+MATCH (m:Module) WHERE m.language = 'rust' RETURN m.name, m.file_path
+
+// Structs (node_type='Class', metadata.kind='struct')
+MATCH (c:Class) WHERE c.language = 'rust' RETURN c.name, c.file_path
+
+// Enums (node_type='Type', metadata.kind='enum')
+MATCH (t:Type) WHERE t.language = 'rust' RETURN t.name, t.file_path
+
+// Traits
+MATCH (tr:Trait) WHERE tr.language = 'rust' RETURN tr.name, tr.file_path
+
+// Méthodes d'un impl block
+MATCH (f:Function)
+WHERE f.language = 'rust' AND f.metadata.struct IS NOT NULL
+RETURN f.name, f.metadata.struct AS struct_name, f.file_path
+
+// Call graph Rust
+MATCH (caller:Function)-[:CALLS]->(callee:Function)
+WHERE caller.language = 'rust'
+RETURN caller.name, callee.name, caller.file_path
+
+// Contenu d'un module (fichier)
+MATCH (m:Module)-[:CONTAINS]->(child)
+WHERE m.language = 'rust'
+RETURN m.name, labels(child) AS kind, child.name
+```
+
 ---
 
 ## Important Rules
@@ -387,6 +418,11 @@ RETURN c.name
 | Servlet by url-pattern | `MATCH (s:Servlet)-[:IMPLEMENTED_BY]->(c:Class) WHERE s.metadata.\`url-pattern\` = '/user/*'` |
 | Impact analysis | `MATCH (n:Function)-[:CALLS*1..N]->(target) WHERE n.name = "X" RETURN COUNT(*)` |
 | Coverage | `MATCH (f:Function) WHERE f.language = "java" RETURN COUNT(*)` |
+| Analyser un module Rust | `MATCH (m:Module)-[:CONTAINS]->(child) WHERE m.language='rust' AND m.file_path CONTAINS "X" RETURN labels(child), child.name` |
+| Méthodes d'une struct Rust | `MATCH (f:Function) WHERE f.language='rust' AND f.metadata.struct = "StructName" RETURN f.name, f.file_path` |
+| Call graph Rust depuis entrée | `MATCH path=(start:Function {name:"X"})-[:CALLS*1..5]->(end:Function) WHERE start.language='rust' RETURN DISTINCT end.name, length(path) AS depth` |
+| Tous les enums Rust | `MATCH (t:Type) WHERE t.language='rust' RETURN t.name, t.file_path` |
+| Imports Rust d'un fichier | `MATCH (i:Import) WHERE i.language='rust' AND i.file_path CONTAINS "X" RETURN i.name` |
 
 ---
 
@@ -394,6 +430,7 @@ RETURN c.name
 
 **Java:** `:Function`, `:Class`, `:Interface`, `:Package`, `:Variable`, `:Parameter`
 **JavaScript:** `:Function`, `:Class`, `:JS`, `:Import`, `:Variable`
+**Rust:** `:Function`, `:Class`, `:Type`, `:Trait`, `:Module`, `:Import`
 **WebSphere:** `:Servlet`, `:Portlet`, `:Filter`, `:WebXml`, `:PortletXml`
 **Web:** `:Jsp`, `:JS`
 **Types:** `:Type`, `:Trait`

@@ -1,9 +1,9 @@
 // Test d'intégration batch complet - Simule l'analyse multi-fichiers comme le vrai workflow
 // Vérifie que les file_path sont corrects pour les classes locales et externes après la résolution globale
 
-use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind, UnifiedGraph};
 use code_continuum::graph_builder::dsl_executor::dependency_resolver::DependencyResolver;
 use code_continuum::graph_builder::{DslExecutor, MultiLanguageGraphBuilder};
+use code_continuum::semantic_graph::semantic_graph::{EdgeRelation, NodeKind, UnifiedGraph};
 
 #[test]
 fn test_batch_analysis_with_inheritance() {

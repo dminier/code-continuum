@@ -2,11 +2,11 @@ use std::path::Path;
 use tracing::{debug, error, info};
 
 use super::{AnalysisReport, FileError, ParseError};
-use crate::semantic_graph::{dsl::DslRegistry, Neo4jExporter, UnifiedGraph};
 use crate::config::PackageFilter;
 use crate::encoding::read_text_with_encoding_detection;
 use crate::graph_builder::dsl_executor::dependency_resolver::DependencyResolver;
 use crate::graph_builder::MultiLanguageGraphBuilder;
+use crate::semantic_graph::{dsl::DslRegistry, Neo4jExporter, UnifiedGraph};
 
 /// Détecte la langue d'un fichier basé sur son extension
 pub fn detect_language(file_path: &Path) -> Option<&'static str> {
