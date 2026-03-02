@@ -8,6 +8,7 @@ mod config;
 mod encoding;
 mod file_discovery;
 mod graph_builder;
+mod mcp;
 mod neo4j_connectivity;
 mod reporting;
 mod semantic_graph;
@@ -20,9 +21,9 @@ use config::PackageFilter;
 async fn main() {
     let args: Vec<String> = std::env::args().collect();
 
-    // Mode MCP stdio
+    // Mode MCP HTTP
     if args.contains(&"--mcp".to_string()) {
-        // Configuration minimale de logs pour MCP (éviter les interférences avec stdio)
+        // Logs sur stderr pour ne pas interférer avec stdout du serveur HTTP
         let env_filter =
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
         let console_layer = fmt::layer()
@@ -35,6 +36,7 @@ async fn main() {
             .with(console_layer)
             .init();
 
+        mcp::run_mcp_server().await;
         return;
     }
 
@@ -62,13 +64,10 @@ async fn main() {
     println!(
         "\n{}",
         r#"
-    ╔═╗┌─┐┌┬┐┌─┐  ╔═╗┬─┐┌─┐┌─┐┬ ┬  ╦═╗╔═╗╔═╗
-    ║  │ │ ││├┤   ║ ╦├┬┘├─┤├─┘├─┤  ╠╦╝╠═╣║ ╦
-    ╚═╝└─┘─┴┘└─┘  ╚═╝┴└─┴ ┴┴  ┴ ┴  ╩╚═╩ ┴╚═╝
+    CODE CONTINUUM 
 
     Semantic Code Analysis & Knowledge Graph Extraction
     Powered by Tree-Sitter + Neo4j + Rust
-    Implemented by David Minier 
 
         ┌─────────────────────┐
         │ EnhanceUnderstanding│

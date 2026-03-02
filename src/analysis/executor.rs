@@ -232,3 +232,99 @@ pub async fn analyze_repository_with_filter(path: &Path, filter: Option<PackageF
         }
     }
 }
+
+/// Analyse un dépôt et l'exporte vers Neo4j en mode projet (sans vider la base entière)
+///
+/// Retourne un résumé textuel ou une erreur.
+pub async fn analyze_repository_for_project(
+    path: &std::path::Path,
+    project_path: &str,
+    project_name: &str,
+    filter: Option<PackageFilter>,
+    clear_project: bool,
+) -> Result<String, String> {
+    debug!(directory = ?path, project = project_name, "Scanning repository (project mode)");
+
+    let mut source_files = Vec::new();
+    let mut unsupported_files = Vec::new();
+    crate::file_discovery::collect_source_files(path, &mut source_files, &mut unsupported_files);
+
+    info!(count = source_files.len(), directory = ?path, "Found source files");
+
+    // Trier les fichiers (JSP en dernier)
+    source_files.sort_by(|a, b| {
+        let a_is_jsp = a.extension().map_or(false, |ext| {
+            matches!(ext.to_str(), Some("jsp") | Some("jspx") | Some("jspf"))
+        });
+        let b_is_jsp = b.extension().map_or(false, |ext| {
+            matches!(ext.to_str(), Some("jsp") | Some("jspx") | Some("jspf"))
+        });
+        match (a_is_jsp, b_is_jsp) {
+            (true, false) => std::cmp::Ordering::Greater,
+            (false, true) => std::cmp::Ordering::Less,
+            _ => a.cmp(b),
+        }
+    });
+
+    let builder = crate::graph_builder::MultiLanguageGraphBuilder::new();
+    let mut unified_graph = crate::semantic_graph::UnifiedGraph::new();
+
+    let mut report = AnalysisReport {
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        directory: path.display().to_string(),
+        supported_languages: crate::graph_builder::dsl_graph::supported_languages(),
+        processed_files: source_files.len(),
+        unsupported_files: unsupported_files
+            .into_iter()
+            .map(|p| p.display().to_string())
+            .collect(),
+        ..Default::default()
+    };
+
+    crate::ui::phase_start("Code Analysis");
+
+    for (idx, file_path) in source_files.iter().enumerate() {
+        analyze_file(&builder, &mut unified_graph, file_path, path, &mut report);
+        crate::ui::show_progress_stepped(idx + 1, source_files.len(), "Analyzing files", 10);
+    }
+
+    crate::ui::phase_complete("Code Analysis");
+
+    let mut resolver = if let Some(f) = filter {
+        DependencyResolver::with_filter(f)
+    } else {
+        DependencyResolver::new()
+    };
+    crate::graph_builder::DslExecutor::register_local_classes(&mut resolver, &unified_graph);
+    crate::graph_builder::DslExecutor::resolve_imports_global(&mut unified_graph, &resolver);
+    crate::graph_builder::DslExecutor::resolve_extends_implements_global(
+        &mut unified_graph,
+        &resolver,
+    );
+    crate::graph_builder::DslExecutor::resolve_calls_global(&mut unified_graph, &resolver);
+
+    let node_count = unified_graph.nodes.len();
+    let edge_count = unified_graph.edges.len();
+
+    // Drop builder et resolver avant le premier await (types potentiellement !Send)
+    drop(builder);
+    drop(resolver);
+
+    // Exporter vers Neo4j en mode projet
+    // Convertir Box<dyn Error> en String immédiatement pour ne pas le tenir à travers un await
+    let exporter = match Neo4jExporter::new().await {
+        Ok(e) => e,
+        Err(e) => return Err(format!("Impossible de se connecter à Neo4j: {}", e)),
+    };
+
+    match exporter
+        .export_graph_for_project(&unified_graph, project_path, project_name, clear_project)
+        .await
+    {
+        Ok(_) => Ok(format!(
+            "Projet '{}' ajouté avec succès: {} nœuds, {} relations",
+            project_name, node_count, edge_count
+        )),
+        Err(e) => Err(format!("Erreur export Neo4j: {}", e)),
+    }
+}

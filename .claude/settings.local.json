@@ -6,11 +6,15 @@
       "Bash(cargo build)",
       "Bash(curl:*)",
       "mcp__neo4j__local-read_neo4j_cypher",
-      "Bash(cargo run:*)"
+      "Bash(cargo run:*)",
+      "Bash(python3 -:*)",
+      "Bash(python3 -c \":*)",
+      "mcp__code-continuum__add_project"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "neo4j"
+    "neo4j",
+    "code-continuum"
   ]
 }

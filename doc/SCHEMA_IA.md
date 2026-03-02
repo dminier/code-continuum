@@ -426,6 +426,79 @@ RETURN c.name
 
 ---
 
+## MCP Tools API Reference
+
+Available through `code-continuum` MCP server (port 8001).
+
+### `list_projects()`
+
+Lists all available projects (subdirectories) under CODE_PATH (`/app/data`).
+
+**Use this first to discover available projects.**
+
+**Parameters:** None
+
+**Returns:** List of project names relative to CODE_PATH
+
+**Example response:**
+```
+Available projects:
+  backend/java
+  backend/javascript
+  frontend/javascript
+  web_templates
+```
+
+### `add_project(project_path, [project_name], [include_packages], [clear_project])`
+
+Analyzes a project and adds its nodes/relations to Neo4j. Does not clear other projects.
+
+**All paths are relative to CODE_PATH (`/app/data`).**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `project_path` | string | ✅ | Path relative to CODE_PATH (e.g., `backend/java`, `my-app`) |
+| `project_name` | string | | Friendly name (defaults to last path segment) |
+| `include_packages` | string | | CSV filter: only index matching packages (e.g., `com.example,org.myapp`) |
+| `clear_project` | boolean | | Delete existing project data before re-indexing (default: false) |
+
+**Example calls:**
+```
+add_project(project_path = "backend/java")
+add_project(project_path = "backend/java", project_name = "my-backend", include_packages = "com.example,org.myapp")
+add_project(project_path = "frontend/javascript", clear_project = true)
+```
+
+### `remove_project(project_path)`
+
+Deletes all nodes and relations belonging to a project.
+
+**The path must be relative to CODE_PATH and match the `project_path` used when adding.**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `project_path` | string | ✅ | Path relative to CODE_PATH (must match add_project call) |
+
+**Example call:**
+```
+remove_project(project_path = "backend/java")
+```
+
+---
+
+## MCP Tools + Neo4j Cypher Workflow
+
+**Typical agent workflow:**
+
+1. Call `list_projects()` to discover available projects
+2. Call `add_project(project_path = "...")` to analyze a project
+3. Execute Cypher queries (via `neo4j` MCP tool) to explore the graph
+4. Call `remove_project(project_path = "...")` when done
+
+**Important:** All project paths are relative to `/app/data`. The `code-continuum` MCP server automatically resolves them.
+
+---
+
 ## Labels by Category
 
 **Java:** `:Function`, `:Class`, `:Interface`, `:Package`, `:Variable`, `:Parameter`
