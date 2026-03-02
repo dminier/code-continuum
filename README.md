@@ -289,7 +289,7 @@ MATCH (f:Function)-[:CALLS*1..5]->(g:Function) RETURN f.name, g.name
 
 ### Adding a new language
 
-Adding support for a new language is surprisingly straightforward : mostly because this project cheats *a lot* with Vibe Coding. That was actually the goal of the project: **don’t spend too much time managing new languages**.
+Adding support for a new language is surprisingly straightforward : mostly because this project cheats *a lot* with Vibe Coding. That was actually the goal of the project: **don’t spend too much time managing new language**.
 
 A TDD approach is still a good practice.
 
@@ -349,9 +349,10 @@ docker-compose.yml      # Production: neo4j + mcp-neo4j + mcp-code-continuum
 
 I tested this approach on a real Java project during a legacy migration. The AST + Graph + Agentic combo is incredibly powerful ; the AI maps the application architecture almost instantly and generates Cypher queries that would take a human forever 😄. This approach uses fewer tokens.
 
-This project is just a part of the core technique. For examplte, for a full migration, it relies on multi-agent orchestration (coordinator, retro-spec → new spec → code generation), which is a whole other story. A complementary schema can be used with relations or new property discovery by agents. For example: "functional description", "security issue", "call backend", ... what you need to maintain traceability. 
+An explored use case is API retrodocumentation. By giving the AI a complete view of the sequence diagram, it can retrodocument both technically and functionally. The diagram acts as a guiding thread, preventing the AI from getting lost in the complexity of the system. This same technique can also be applied for audits.
 
-Another explored use case is API retrodocumentation. By giving the AI a complete view of the sequence diagram, it can retrodocument both technically and functionally. The diagram acts as a guiding thread, preventing the AI from getting lost in the complexity of the system. This same technique can also be applied for audits.
+This project is just a part of the core technique and help creating complex multi-agent orchestration (coordinator, retro-spec → new spec → code generation, all using a code-continuum expert), which is a whole other story. A complementary schema can be used with relations or new property discovery by agents. For example: "functional description", "security issue", "call backend", ... what you need to maintain traceability. 
+
 
 The next DSL: **COBOL** — the king of legacies.
 
