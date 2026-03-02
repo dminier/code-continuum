@@ -166,22 +166,15 @@ Deploy on any machine with Docker. All services communicate via `localhost`.
 
 ```bash
 cd production
-cp .env.example .env
-# Edit .env — set NEO4J_PASSWORD and CODE_PATH if needed
+cp .env.example .env # Edit .env — set NEO4J_PASSWORD and CODE_PATH if needed
 
-docker compose up -d neo4j mcp-neo4j mcp-code-continuum
+docker compose up -d 
 ```
 
-Wait for Neo4j to be healthy:
-
-```bash
-docker compose logs neo4j | grep -i "started"
-# Or check browser: http://localhost:7474 (default neo4j/your_password)
-```
 
 #### 2 — Mount your codebase
 
-By default, the `CODE_PATH` is set to `./examples`. To analyze a different project:
+By default, the `CODE_PATH` is set to `../examples`. To analyze a different project:
 
 ```bash
 # Option A: Edit production/.env
@@ -203,26 +196,22 @@ From Claude Code or any MCP client, point to **localhost**:
 cat production/.mcp.json
 ```
 
-First, list available projects:
+First, ask "list available projects"
 
 ```
 list_projects()
 ```
 
-Then add a project:
+Then : "add projects frontend and backend":
 
 ```
 add_project(
-  project_path = "backend/java",
-  project_name = "my-java-backend"
+  project_path = "backend",
+  project_name = "frontend"
 )
 ```
 
-Query with the `neo4j` tool:
-
-```
-Run Cypher: MATCH (c:Class {project_name: "my-java-backend"}) RETURN c.name LIMIT 20
-```
+Query with the `neo4j` tool : "give me the sequence diagram of java function getClient ?"
 
 Remove a project when done:
 
@@ -249,6 +238,8 @@ cd code-continuum
 ```
 
 Once inside the container, the devcontainer's own `docker-compose.yml` automatically starts Neo4j and both MCP servers. The root `.mcp.json` is pre-configured for service names.
+
+The last thing to do is to launch the `Debug: MCP Server` on VSCODE.
 
 **For production deployment**, see [Production — Docker Compose (localhost)](#production--docker-compose-localhost) above.
 
@@ -296,6 +287,12 @@ MATCH (f:Function)-[:CALLS*1..5]->(g:Function) RETURN f.name, g.name
 | XML (WebSphere Portal) | `portlet.xml` `web.xml` | Specialized (servlet/portlet mappings) |
 | HTML | `.html` `.htm` | Indexed only (no extraction) |
 
+### Adding a new language
+
+Adding support for a new language is surprisingly straightforward : mostly because this project cheats *a lot* with Vibe Coding. That was actually the goal of the project: **don’t spend too much time managing new languages**.
+
+A TDD approach is still a good practice.
+
 ## AI Agents
 
 The project ships custom Claude Code sub-agents in [.claude/agents/](.claude/agents/).
@@ -316,7 +313,7 @@ The agent:
 4. Writes the result to `doc/RETRODOC.md`
 
 **Output:** [doc/RETRODOC_GENERATED.md](doc/RETRODOC_GENERATED.md)
-
+**todo update this part**
 ---
 
 ## Docs
@@ -350,11 +347,11 @@ docker-compose.yml      # Production: neo4j + mcp-neo4j + mcp-code-continuum
 
 ## Motivation
 
-I tested this approach on a real JAva project during a legacy migration. The AST + Graph + Agentic combo is incredibly powerful — the AI maps the application architecture almost instantly and generates Cypher queries that would take a human forever 😄.
+I tested this approach on a real Java project during a legacy migration. The AST + Graph + Agentic combo is incredibly powerful ; the AI maps the application architecture almost instantly and generates Cypher queries that would take a human forever 😄. This approach uses fewer tokens.
 
-This project is juste a part of the core technique. The full migration relies on multi-agent orchestration (coordinator, retro-spec → new API spec → code generation), which is a whole other story. In the schema, relations like "CALL BACKEND" are enriched by agents, because it's too complex to capture all backend calls with Tree‑Sitter or regex alone. For old java legacy system, this tool shines at quickly identifying all session-related impacts, a real headache if sessions have been heavily used.
+This project is just a part of the core technique. For examplte, for a full migration, it relies on multi-agent orchestration (coordinator, retro-spec → new spec → code generation), which is a whole other story. A complementary schema can be used with relations or new property discovery by agents. For example: "functional description", "security issue", "call backend", ... what you need to maintain traceability. 
 
-Another experimented use case is API retrodocumentation. By giving the AI a complete view of the sequence diagram, it can retrodocument both technically and functionally. The diagram acts as a guiding thread, preventing the AI from getting lost in the complexity of the system. 
+Another explored use case is API retrodocumentation. By giving the AI a complete view of the sequence diagram, it can retrodocument both technically and functionally. The diagram acts as a guiding thread, preventing the AI from getting lost in the complexity of the system. This same technique can also be applied for audits.
 
 The next DSL: **COBOL** — the king of legacies.
 
