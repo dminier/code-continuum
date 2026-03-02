@@ -21,7 +21,6 @@ services:
   # Neo4j Graph Database
   neo4j:
     image: neo4j:5.15
-    container_name: code-continuum-neo4j-prod
     restart: unless-stopped
     ports:
       - "7474:7474"  # Neo4j Browser
@@ -46,36 +45,11 @@ services:
       timeout: 10s
       retries: 30
       start_period: 90s
-
-  # Code Graph RAG Analyzer
-  code-continuum:
-    build:
-      context: ../
-      dockerfile: Dockerfile
-    image: code-continuum:latest
-    container_name: code-continuum-analyzer-prod
-    restart: on-failure
-    environment:
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-production_password_change_me}
-      - RUST_LOG=${RUST_LOG:-info}
-      - RUST_BACKTRACE=${RUST_BACKTRACE:-0}
-    volumes:
-      # Mount your codebase here
-      - ${CODE_PATH:-./examples}:/app/data:ro
-    networks:
-      - code-continuum-network
-    depends_on:
-      neo4j:
-        condition: service_healthy
-    # Override default CMD to analyze mounted directory
-    command: ["/app/data"]
+ 
 
   # MCP Server Neo4j (Model Context Protocol) - Cypher queries
   mcp-neo4j:
     image: mcp/neo4j-cypher:latest
-    container_name: code-continuum-mcp-prod
     restart: unless-stopped
     ports:
       - "8040:8020"
@@ -96,24 +70,23 @@ services:
         condition: service_healthy
 
   # MCP Server code-continuum - project management
-  mcp-code-continuum:
+  code-continuum:
     build:
       context: ../
       dockerfile: Dockerfile
     image: code-continuum:latest
-    container_name: code-continuum-mcp-cc
     restart: unless-stopped
     ports:
       - "8041:8021"
     environment:
-      - NEO4J_URI=bolt://neo4j:7707
+      - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-production_password_change_me}
       - MCP_PORT=8021
-      - RUST_LOG=${RUST_LOG:-warn}
+      - RUST_LOG=${RUST_LOG:-info}
       - RUST_BACKTRACE=${RUST_BACKTRACE:-0}
     volumes:
-      - ${CODE_PATH:-./examples}:/app/data:ro
+      - ${CODE_PATH:-../examples}:/app/data:ro
     networks:
       - code-continuum-network
     depends_on:

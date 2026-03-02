@@ -52,7 +52,7 @@ Two MCP servers run alongside Neo4j:
     },
     "code-continuum": {
       "type": "http",
-      "url": "http://mcp-code-continuum:8001/api/mcp/"
+      "url": "http://localhost:8001/api/mcp/"
     }
   }
 }
@@ -347,11 +347,11 @@ docker-compose.yml      # Production: neo4j + mcp-neo4j + mcp-code-continuum
 
 ## Motivation
 
-I tested this approach on a real Java WebSphere Portal project during a legacy migration. The AST + Graph + Agentic combo is incredibly powerful — the AI maps the application architecture almost instantly and generates Cypher queries that would take a human forever 😄.
+I tested this approach on a real JAva project during a legacy migration. The AST + Graph + Agentic combo is incredibly powerful — the AI maps the application architecture almost instantly and generates Cypher queries that would take a human forever 😄.
 
-This is just the core technique. The full migration relies on multi-agent orchestration (retro-spec → new API spec → code generation), which is a whole other story. In the schema, relations like CALL_BACKEND are enriched by agents, because it's too complex to capture all backend calls with Tree‑Sitter or regex alone. For projects like WebSphere Portal, this tool shines at quickly identifying all session-related impacts, a real headache if sessions have been heavily used.
+This project is juste a part of the core technique. The full migration relies on multi-agent orchestration (coordinator, retro-spec → new API spec → code generation), which is a whole other story. In the schema, relations like "CALL BACKEND" are enriched by agents, because it's too complex to capture all backend calls with Tree‑Sitter or regex alone. For old java legacy system, this tool shines at quickly identifying all session-related impacts, a real headache if sessions have been heavily used.
 
-Another experimented use case is API retrodocumentation. By giving the AI a complete view of the sequence diagram, it can retrodocument both technically and functionally. The diagram acts as a guiding thread, preventing the AI from getting lost in the complexity of the system.
+Another experimented use case is API retrodocumentation. By giving the AI a complete view of the sequence diagram, it can retrodocument both technically and functionally. The diagram acts as a guiding thread, preventing the AI from getting lost in the complexity of the system. 
 
 The next DSL: **COBOL** — the king of legacies.
 
