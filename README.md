@@ -60,19 +60,22 @@ Two MCP servers run alongside Neo4j:
 
 **Production:** Use `production/.mcp.json` (localhost):
 
+Just open Claude inside `production` directory.
+
 ```json
 {
   "mcpServers": {
     "neo4j": {
       "type": "http",
-      "url": "http://localhost:8000/api/mcp/"
+      "url": "http://localhost:8040/api/mcp/"
     },
     "code-continuum": {
       "type": "http",
-      "url": "http://localhost:8001/api/mcp/"
+      "url": "http://localhost:8041/api/mcp/"
     }
   }
 }
+
 ```
 
 ### Tools — code-continuum MCP
