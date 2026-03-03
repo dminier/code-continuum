@@ -17,50 +17,7 @@ mod ui;
 use analysis::executor;
 use config::PackageFilter;
 
-#[tokio::main]
-async fn main() {
-    let args: Vec<String> = std::env::args().collect();
-
-    // Mode MCP HTTP
-    if args.contains(&"--mcp".to_string()) {
-        // Logs sur stderr pour ne pas interférer avec stdout du serveur HTTP
-        let env_filter =
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
-        let console_layer = fmt::layer()
-            .with_target(false)
-            .with_ansi(false)
-            .with_writer(std::io::stderr);
-
-        tracing_subscriber::registry()
-            .with(env_filter)
-            .with(console_layer)
-            .init();
-
-        mcp::run_mcp_server().await;
-        return;
-    }
-
-    // Initialiser la sortie logs: console + fichier .output/app.log
-    let _ = std::fs::create_dir_all(".output");
-
-    let file_appender = tracing_appender::rolling::daily(".output", "app.log");
-    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-
-    let console_layer = fmt::layer().with_target(true).with_ansi(true);
-    let file_layer = fmt::layer()
-        .with_writer(non_blocking)
-        .with_ansi(false)
-        .with_target(true);
-
-    tracing_subscriber::registry()
-        .with(env_filter)
-        .with(console_layer)
-        .with(file_layer)
-        .init();
-
-    // ASCII Art Banner
+fn print_ascii_banner() {
     println!(
         "\n{}",
         r#"
@@ -99,6 +56,60 @@ async fn main() {
             ╚═══════════════════════════════════════════════╝
 "#
     );
+}
+
+#[tokio::main]
+async fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
+    // Mode MCP HTTP
+    if args.contains(&"--mcp".to_string()) {
+        // Logs sur stderr pour ne pas interférer avec stdout du serveur HTTP
+        let env_filter =
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
+        let console_layer = fmt::layer()
+            .with_target(false)
+            .with_ansi(false)
+            .with_writer(std::io::stderr);
+
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(console_layer)
+            .init();
+
+        print_ascii_banner();
+        eprintln!("🚀 MODE: MCP Server (Model Context Protocol)");
+        eprintln!("📡 Starting server...");
+        eprintln!("📊 Semantic Code Analysis & Knowledge Graph Extraction");
+        eprintln!("🔗 Connected to Neo4j for knowledge persistence");
+        eprintln!("");
+
+        mcp::run_mcp_server().await;
+        return;
+    }
+
+    // Initialiser la sortie logs: console + fichier .output/app.log
+    let _ = std::fs::create_dir_all(".output");
+
+    let file_appender = tracing_appender::rolling::daily(".output", "app.log");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+
+    let console_layer = fmt::layer().with_target(true).with_ansi(true);
+    let file_layer = fmt::layer()
+        .with_writer(non_blocking)
+        .with_ansi(false)
+        .with_target(true);
+
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(console_layer)
+        .with(file_layer)
+        .init();
+
+    // ASCII Art Banner
+    print_ascii_banner();
     let args = match cli::parse_args() {
         Ok(args) => args,
         Err(e) => {

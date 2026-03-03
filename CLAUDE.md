@@ -1,6 +1,27 @@
-# AGENTS.md — AI Collaboration Guide
+# CLAUDE.md — AI Collaboration Guide
 
 This document provides all context an AI agent needs to work effectively on this project. Follow every guideline here to maintain code quality, test coverage, and schema consistency.
+
+---
+
+## 0. Session Quickstart
+
+**Read this first at the start of every session.**
+
+1. Read `doc/SCHEMA_IA.md` for the current Neo4j schema (compact Cypher reference).
+2. Read `src/semantic_graph/semantic_graph.rs` if you need to add or modify node/edge types.
+3. Run `cargo test` before making any changes to establish a green baseline.
+4. Follow the TDD workflow (Section 5) for every code change — no exceptions.
+
+**Critical files to know:**
+
+| File | Why it matters |
+|---|---|
+| `src/semantic_graph/semantic_graph.rs` | Source of truth for all node/edge types |
+| `src/semantic_graph/neo4j_exporter.rs` | Cypher generation — always in sync with above |
+| `doc/SCHEMA.md` | Human-readable schema reference |
+| `doc/SCHEMA_IA.md` | Compact Cypher patterns for AI queries |
+| `examples/` | Single source of truth for test fixtures |
 
 ---
 
@@ -69,18 +90,6 @@ src/
 └── ui/                          # CLI progress/display utilities
 ```
 
-### Critical Files
-
-| File | Purpose |
-|---|---|
-| `src/main.rs` | CLI + MCP mode entrypoint |
-| `src/analysis/executor.rs` | `analyze_repository()` — full pipeline |
-| `src/semantic_graph/semantic_graph.rs` | `NodeKind`, `EdgeRelation` enums — **schema definition** |
-| `src/semantic_graph/neo4j_exporter.rs` | Cypher export logic |
-| `doc/SCHEMA.md` | Human-readable schema reference |
-| `doc/SCHEMA_IA.md` | Compact Cypher reference for AI agents |
-| `examples/` | Test fixtures — single source of truth |
-
 ### Environment Variables
 
 | Variable | Default | Description |
@@ -135,7 +144,7 @@ Use structured fields: `tracing::info!(file = %path, nodes = count, "Extraction 
 ### Documentation
 
 - New docs go under `doc/` with `UPPERCASE_NAME.md` filenames.
-- All new doc files must be linked from `doc/README.md`.
+- All new doc files must be linked from `doc/SCHEMA.md` or the relevant schema reference.
 
 ---
 
@@ -338,7 +347,7 @@ All four checks must pass. No exceptions.
 
 ## 6. Neo4j Schema Maintenance (CRITICAL)
 
-Any change to the Neo4j schema — new node label, new relation type, new property — requires **synchronized updates across exactly three files in the same commit**:
+Any change to the Neo4j schema — new node label, new relation type, new property — requires **synchronized updates across exactly four files in the same commit**:
 
 | File | What to update |
 |---|---|
@@ -347,7 +356,7 @@ Any change to the Neo4j schema — new node label, new relation type, new proper
 | `doc/SCHEMA.md` | Full human-readable documentation with examples |
 | `doc/SCHEMA_IA.md` | Compact Cypher patterns reference for AI agents |
 
-**All three must remain in sync. Never update one without the others.**
+**All four must remain in sync. Never update one without the others.**
 
 ### When This Applies
 
@@ -358,7 +367,7 @@ Any change to the Neo4j schema — new node label, new relation type, new proper
 
 ### Commit Rule
 
-Schema changes must ship in an atomic commit that includes all modified files. The commit message must clearly state which node/relation type was added or changed.
+Schema changes must ship in an atomic commit that includes all modified files. Use the `schema` commit type and reference all four modified files in the commit body.
 
 ---
 
@@ -374,6 +383,29 @@ The MCP server (`src/mcp/`) exposes an HTTP API for AI agents to query the Neo4j
 | `search_nodes` | Full-text search on node names/IDs |
 | `find_calls` | Find callers/callees of a function |
 | `analyze_dependencies` | Dependency graph for a module/class |
+
+### Querying the Graph as an AI Agent
+
+Prefer MCP endpoints over direct Neo4j access. Use `execute_cypher` for ad-hoc exploration:
+
+```json
+// Find all callers of a method
+{
+  "query": "MATCH (caller)-[:CALLS]->(callee {id: 'com.example.ServiceA.doCall'}) RETURN caller.id, caller.kind"
+}
+
+// Find all classes in a package
+{
+  "query": "MATCH (n:Class) WHERE n.id STARTS WITH 'com.example.' RETURN n.id, n.name LIMIT 50"
+}
+
+// Inspect outgoing dependencies of a module
+{
+  "query": "MATCH (m {id: 'com.example.ModuleX'})-[r]->(dep) RETURN type(r), dep.id, dep.kind"
+}
+```
+
+Refer to `doc/SCHEMA_IA.md` for the full list of node labels, relation types, and property names.
 
 ### Request Format
 
@@ -403,9 +435,9 @@ Use **Conventional Commits** format:
 | `refactor` | Code restructuring without behavior change |
 | `docs` | Documentation updates |
 | `chore` | Tooling, dependencies, CI configuration |
-| `schema` | Neo4j schema changes (requires 3-file sync) |
+| `schema` | Neo4j schema changes (requires 4-file sync) |
 
-**Schema changes must use the `schema` type** and reference all three modified files in the commit body.
+**Schema changes must use the `schema` type** and reference all four modified files in the commit body.
 
 ---
 
@@ -437,9 +469,14 @@ cargo run -- examples/backend/
 # Run all tests
 cargo test
 
-# Run specific test category
-cargo test --test integration_extraction
-cargo test --test integration_neo4j
+# Run E2E tests only
+cargo test --test e2e
+
+# Run extraction integration tests
+cargo test --test extraction
+
+# Run Neo4j integration tests
+cargo test --test neo4j
 ```
 
 ### Services (docker-compose.yml)

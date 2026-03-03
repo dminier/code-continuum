@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__code-continuum__list_projects",
+      "mcp__code-continuum__add_project"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "neo4j",
+    "code-continuum"
+  ]
+}
