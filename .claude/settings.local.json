@@ -9,7 +9,10 @@
       "Bash(cargo run:*)",
       "Bash(python3 -:*)",
       "Bash(python3 -c \":*)",
-      "mcp__code-continuum__add_project"
+      "mcp__code-continuum__add_project",
+      "WebFetch(domain:crates.io)",
+      "Bash(cargo clippy --all-targets -- -D warnings)",
+      "Bash(git stash)"
     ]
   },
   "enableAllProjectMcpServers": true,

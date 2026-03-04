@@ -3,6 +3,7 @@
 
 pub mod dsl;
 pub mod neo4j_exporter;
+#[allow(clippy::module_inception)]
 pub mod semantic_graph;
 
 // Réexporter les types publics pour un accès facile

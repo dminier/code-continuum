@@ -96,6 +96,7 @@ pub fn analyze_file(
 }
 
 /// Orchestre l'analyse complète du dépôt
+#[allow(dead_code)]
 pub async fn analyze_repository(path: &Path) {
     analyze_repository_with_filter(path, None).await;
 }
@@ -118,10 +119,10 @@ pub async fn analyze_repository_with_filter(path: &Path, filter: Option<PackageF
     // Trier les fichiers pour traiter les JSP/JSPX/JSPF en dernier
     // Cela évite de créer des nœuds JS fantômes avant que les vrais fichiers JS soient parsés
     source_files.sort_by(|a, b| {
-        let a_is_jsp = a.extension().map_or(false, |ext| {
+        let a_is_jsp = a.extension().is_some_and(|ext| {
             matches!(ext.to_str(), Some("jsp") | Some("jspx") | Some("jspf"))
         });
-        let b_is_jsp = b.extension().map_or(false, |ext| {
+        let b_is_jsp = b.extension().is_some_and(|ext| {
             matches!(ext.to_str(), Some("jsp") | Some("jspx") | Some("jspf"))
         });
 
@@ -253,10 +254,10 @@ pub async fn analyze_repository_for_project(
 
     // Trier les fichiers (JSP en dernier)
     source_files.sort_by(|a, b| {
-        let a_is_jsp = a.extension().map_or(false, |ext| {
+        let a_is_jsp = a.extension().is_some_and(|ext| {
             matches!(ext.to_str(), Some("jsp") | Some("jspx") | Some("jspf"))
         });
-        let b_is_jsp = b.extension().map_or(false, |ext| {
+        let b_is_jsp = b.extension().is_some_and(|ext| {
             matches!(ext.to_str(), Some("jsp") | Some("jspx") | Some("jspf"))
         });
         match (a_is_jsp, b_is_jsp) {
@@ -306,8 +307,7 @@ pub async fn analyze_repository_for_project(
     let node_count = unified_graph.nodes.len();
     let edge_count = unified_graph.edges.len();
 
-    // Drop builder et resolver avant le premier await (types potentiellement !Send)
-    drop(builder);
+    // Drop resolver avant le premier await (types potentiellement !Send)
     drop(resolver);
 
     // Exporter vers Neo4j en mode projet

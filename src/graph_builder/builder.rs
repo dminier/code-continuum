@@ -82,7 +82,7 @@ mod tests {
         let builder = MultiLanguageGraphBuilder::new();
         let ts_lang = tree_sitter_python::language();
 
-        let result = builder.build_graph("cobol", ts_lang, "print hello", "test.cob");
+        let result = builder.build_graph("fortran", ts_lang, "print hello", "test.f");
 
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("non supporté"));

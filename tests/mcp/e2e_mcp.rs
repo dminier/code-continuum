@@ -68,6 +68,7 @@ async fn mcp_call(client: &Client, url: &str, method: &str, id: u64, params: Val
 
 /// Retourne le chemin absolu vers un sous-dossier de examples/.
 /// **Note (v0.2.0):** Pour les tests MCP, utilisez le chemin relatif au lieu de celui-ci.
+#[allow(dead_code)]
 fn example_path(relative: &str) -> String {
     PathBuf::from("examples")
         .join(relative)

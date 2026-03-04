@@ -241,7 +241,7 @@ fn test_no_duplicate_class_nodes() {
 
             classes_by_qualified_name
                 .entry(qualified_name)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(node_id.clone());
         }
     }
@@ -354,7 +354,7 @@ fn test_jsp_imports_match_java_classes() {
     // Vérifier qu'on retrouve les classes Java dans les imports JSP
     println!("\n🔗 Vérification correspondance:");
     let mut matches = 0;
-    for (qname, _) in &java_classes {
+    for qname in java_classes.keys() {
         if imported_classes.contains_key(qname) {
             println!("  ✅ {} retrouvée en import JSP", qname);
             matches += 1;

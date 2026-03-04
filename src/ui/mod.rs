@@ -54,7 +54,7 @@ pub fn show_progress(current: usize, total: usize, label: &str) {
 /// * `step` - Afficher tous les N éléments (ex: 10, 50, 100)
 pub fn show_progress_stepped(current: usize, total: usize, label: &str, step: usize) {
     // Toujours afficher à 0%, 100%, ou tous les 'step' éléments
-    if current == 0 || current == total || current % step == 0 {
+    if current == 0 || current == total || current.is_multiple_of(step) {
         show_progress(current, total, label);
     }
 }

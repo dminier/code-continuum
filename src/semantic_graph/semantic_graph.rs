@@ -248,7 +248,7 @@ impl UnifiedGraph {
                     && self
                         .nodes
                         .get(&e.to)
-                        .map_or(false, |n| n.name == function_name)
+                        .is_some_and(|n| n.name == function_name)
             })
             .collect()
     }
@@ -341,6 +341,7 @@ impl UnifiedGraph {
     /// Résout les métadonnées EXTENDS/IMPLEMENTS en créant les relations correspondantes
     /// Utilisé principalement pour les tests et constructions simples sans DependencyResolver
     /// Crée des nœuds fantômes si les classes/interfaces ne sont pas trouvées localement
+    #[allow(dead_code)]
     pub fn resolve_extends_implements_local(&mut self) {
         let class_nodes: Vec<_> = self
             .nodes

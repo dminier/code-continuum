@@ -14,7 +14,7 @@ use super::super::{DslExecutor, ScopeContext};
 /// Retourne le FQN si un import exact correspond (ex: `com.foo.Bar` pour `Bar`).
 fn resolve_via_imports(simple_name: &str, graph: &UnifiedGraph) -> Option<String> {
     let suffix = format!(".{}", simple_name);
-    for (_, node) in &graph.nodes {
+    for node in graph.nodes.values() {
         if node.kind == NodeKind::Import {
             if let Some(import_path) = node.metadata.get("import_path") {
                 if import_path.ends_with(&suffix) && !import_path.ends_with(".*") {

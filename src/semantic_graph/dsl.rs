@@ -41,6 +41,7 @@ use std::path::Path;
 use tree_sitter::Language;
 
 // Fournisseurs de Language tree-sitter
+use tree_sitter_cobol::language as ts_cobol;
 use tree_sitter_html::language as ts_html;
 use tree_sitter_java::language as ts_java;
 use tree_sitter_javascript::language as ts_javascript;
@@ -64,6 +65,8 @@ pub enum ExtractorType {
     Jsp,
     /// Extracteur Rust spécialisé
     Rust,
+    /// Extracteur COBOL spécialisé
+    Cobol,
 }
 
 /// Spécification complète d'un langage de programmation supporté
@@ -224,6 +227,14 @@ pub const XML_TSG: &str = r#"
 }
 "#;
 
+/// DSL Tree-sitter pour COBOL (stub minimal — extraction via CobolExtractor)
+#[allow(dead_code)]
+pub const COBOL_TSG: &str = r#"
+(start) @root {
+    node @root.module
+}
+"#;
+
 /// Registre des grammaires DSL disponibles
 /// Fournit un accès centralisé à tous les DSL supportés
 pub struct DslRegistry;
@@ -330,6 +341,15 @@ impl DslRegistry {
                 file_name_patterns: &[],
                 extractor: ExtractorType::Rust,
             },
+            LanguageSpec {
+                name: "cobol",
+                extensions: &["cbl", "cob", "cobol", "cpy"],
+                tree_sitter: || ts_cobol(),
+                function_node_kind: "section_header",
+                function_name_field: "name",
+                file_name_patterns: &[],
+                extractor: ExtractorType::Cobol,
+            },
         ]
     }
 
@@ -382,6 +402,7 @@ impl DslRegistry {
             "jspf" => Some(JSP_TSG),
             "java" => Some(JAVA_TSG),
             "rust" => Some(RUST_TSG),
+            "cobol" => Some(COBOL_TSG),
             _ => None,
         }
     }
@@ -507,7 +528,7 @@ impl DslRegistry {
     /// use code_continuum::semantic_graph::dsl::DslRegistry;
     /// assert!(DslRegistry::is_supported("python"));
     /// assert!(DslRegistry::is_supported("java"));
-    /// assert!(!DslRegistry::is_supported("cobol"));
+    /// assert!(DslRegistry::is_supported("cobol"));
     /// ```
     #[allow(dead_code)]
     pub fn is_supported(language: &str) -> bool {

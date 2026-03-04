@@ -34,3 +34,6 @@ mod extraction_jsp_imports;
 
 #[path = "extraction/rust.rs"]
 mod extraction_rust;
+
+#[path = "extraction/cobol.rs"]
+mod extraction_cobol;

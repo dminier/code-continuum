@@ -125,81 +125,78 @@ impl DslExecutor {
         ctx: &ScopeContext,
         imports: &[String],
     ) {
-        match node.kind() {
-            "class_declaration" => {
-                if let Some(name_node) = node.child_by_field_name("name") {
-                    let class_name = self.get_text(name_node, source);
-                    let class_id = if let Some(pkg) = &ctx.package {
-                        format!("{}.{}", pkg, class_name)
-                    } else {
-                        class_name.clone()
-                    };
+        if node.kind() == "class_declaration" {
+            if let Some(name_node) = node.child_by_field_name("name") {
+                let class_name = self.get_text(name_node, source);
+                let class_id = if let Some(pkg) = &ctx.package {
+                    format!("{}.{}", pkg, class_name)
+                } else {
+                    class_name.clone()
+                };
 
-                    for import_path in imports {
-                        if import_path.ends_with(".*") {
-                            // Import wildcard: créer relation vers package
-                            let package_name = &import_path[..import_path.len() - 2];
-                            let package_id = format!("{}::import_package", package_name);
+                for import_path in imports {
+                    if import_path.ends_with(".*") {
+                        // Import wildcard: créer relation vers package
+                        let package_name = &import_path[..import_path.len() - 2];
+                        let package_id = format!("{}::import_package", package_name);
 
-                            if !graph.nodes.contains_key(&package_id) {
-                                let mut metadata = self.metadata("java");
-                                metadata.insert("is_external".to_string(), "true".to_string());
-                                graph.add_node(SemanticNode {
-                                    id: package_id.clone(),
-                                    kind: NodeKind::Package,
-                                    name: package_name.to_string(),
-                                    file_path: String::new(),
-                                    location: self.root_location(),
-                                    metadata,
-                                });
-                            }
-
-                            graph.add_edge(SemanticEdge {
-                                from: class_id.clone(),
-                                to: package_id,
-                                relation: EdgeRelation::Imports,
-                                metadata: HashMap::new(),
-                            });
-                        } else {
-                            // Import spécifique: créer relation vers classe
-                            let class_id_imported = import_path.clone();
-                            if !graph.nodes.contains_key(&class_id_imported) {
-                                let simple_name = import_path
-                                    .split('.')
-                                    .last()
-                                    .unwrap_or("Unknown")
-                                    .to_string();
-
-                                let mut metadata = self.metadata("java");
-                                metadata.insert("is_external".to_string(), "true".to_string());
-
-                                // Extraire et stocker le package du FQN importé
-                                if let Some(last_dot) = import_path.rfind('.') {
-                                    let package = &import_path[..last_dot];
-                                    metadata.insert("package".to_string(), package.to_string());
-                                }
-
-                                graph.add_node(SemanticNode {
-                                    id: class_id_imported.clone(),
-                                    kind: NodeKind::Class,
-                                    name: simple_name,
-                                    file_path: String::new(),
-                                    location: self.root_location(),
-                                    metadata,
-                                });
-                            }
-
-                            graph.add_edge(SemanticEdge {
-                                from: class_id.clone(),
-                                to: class_id_imported.clone(),
-                                relation: EdgeRelation::Imports,
-                                metadata: HashMap::new(),
+                        if !graph.nodes.contains_key(&package_id) {
+                            let mut metadata = self.metadata("java");
+                            metadata.insert("is_external".to_string(), "true".to_string());
+                            graph.add_node(SemanticNode {
+                                id: package_id.clone(),
+                                kind: NodeKind::Package,
+                                name: package_name.to_string(),
+                                file_path: String::new(),
+                                location: self.root_location(),
+                                metadata,
                             });
                         }
+
+                        graph.add_edge(SemanticEdge {
+                            from: class_id.clone(),
+                            to: package_id,
+                            relation: EdgeRelation::Imports,
+                            metadata: HashMap::new(),
+                        });
+                    } else {
+                        // Import spécifique: créer relation vers classe
+                        let class_id_imported = import_path.clone();
+                        if !graph.nodes.contains_key(&class_id_imported) {
+                            let simple_name = import_path
+                                .split('.')
+                                .next_back()
+                                .unwrap_or("Unknown")
+                                .to_string();
+
+                            let mut metadata = self.metadata("java");
+                            metadata.insert("is_external".to_string(), "true".to_string());
+
+                            // Extraire et stocker le package du FQN importé
+                            if let Some(last_dot) = import_path.rfind('.') {
+                                let package = &import_path[..last_dot];
+                                metadata.insert("package".to_string(), package.to_string());
+                            }
+
+                            graph.add_node(SemanticNode {
+                                id: class_id_imported.clone(),
+                                kind: NodeKind::Class,
+                                name: simple_name,
+                                file_path: String::new(),
+                                location: self.root_location(),
+                                metadata,
+                            });
+                        }
+
+                        graph.add_edge(SemanticEdge {
+                            from: class_id.clone(),
+                            to: class_id_imported.clone(),
+                            relation: EdgeRelation::Imports,
+                            metadata: HashMap::new(),
+                        });
                     }
                 }
             }
-            _ => {}
         }
 
         let mut cursor = node.walk();

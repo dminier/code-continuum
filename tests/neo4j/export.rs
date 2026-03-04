@@ -20,7 +20,6 @@ async fn test_neo4j_exported_data_structure() {
             match result {
                 Ok(_) => {
                     // Le test est considéré comme réussi
-                    assert!(true);
                 }
                 Err(e) => {
                     eprintln!("⚠️ Failed to query exported data: {}", e);

@@ -54,7 +54,7 @@ impl DependencyResolver {
         let simple_name = PackageFilter::extract_class_name(fqn);
         self.simple_name_index
             .entry(simple_name)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(fqn.to_string());
     }
 

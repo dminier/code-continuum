@@ -92,7 +92,7 @@ impl JspExtractor {
         let jsp_id = format!("jsp::{}", file_path);
         let jsp_name = file_path
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or(file_path)
             .trim_end_matches(".jsp")
             .trim_end_matches(".jspf")
@@ -244,7 +244,7 @@ impl JspExtractor {
             //     → Chercher .../webapp/Contractualisation/js/app.js
             let webapp_root = Path::new(jsp_file_path)
                 .ancestors()
-                .find(|p| p.file_name().map_or(false, |n| n == "webapp"))
+                .find(|p| p.file_name().is_some_and(|n| n == "webapp"))
                 .or_else(|| {
                     // Fallback: chercher WEB-INF parent
                     Path::new(jsp_file_path)
@@ -286,7 +286,7 @@ impl JspExtractor {
             let id = format!("jsp::{}", resolved_file_path);
             let name = resolved_file_path
                 .split('/')
-                .last()
+                .next_back()
                 .unwrap_or(&resolved_file_path)
                 .trim_end_matches(".jsp")
                 .trim_end_matches(".jspx")
@@ -299,7 +299,7 @@ impl JspExtractor {
             let id = format!("{}::module", resolved_file_path);
             let name = resolved_file_path
                 .split('/')
-                .last()
+                .next_back()
                 .unwrap_or(&resolved_file_path)
                 .trim_end_matches(".js")
                 .to_string();
@@ -370,7 +370,7 @@ impl JspExtractor {
             // Stratégie: Chercher depuis la racine webapp (typique WebSphere)
             let webapp_root = Path::new(jsp_file_path)
                 .ancestors()
-                .find(|p| p.file_name().map_or(false, |n| n == "webapp"))
+                .find(|p| p.file_name().is_some_and(|n| n == "webapp"))
                 .or_else(|| {
                     Path::new(jsp_file_path)
                         .ancestors()
@@ -402,7 +402,7 @@ impl JspExtractor {
         let css_id = format!("css::{}", resolved_file_path);
         let css_name = resolved_file_path
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or(&resolved_file_path)
             .trim_end_matches(".css")
             .to_string();
@@ -467,7 +467,7 @@ impl JspExtractor {
                 // Chemin absolu web → résoudre depuis webapp root
                 let webapp_root = Path::new(jsp_file_path)
                     .ancestors()
-                    .find(|p| p.file_name().map_or(false, |n| n == "webapp"))
+                    .find(|p| p.file_name().is_some_and(|n| n == "webapp"))
                     .or_else(|| {
                         // Fallback: chercher WEB-INF parent
                         Path::new(jsp_file_path)
@@ -519,7 +519,7 @@ impl JspExtractor {
         let included_id = format!("jsp::{}", resolved_jsp_path);
         let included_name = resolved_jsp_path
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or(&resolved_jsp_path)
             .trim_end_matches(".jsp")
             .trim_end_matches(".jspx")
@@ -567,7 +567,7 @@ impl JspExtractor {
         // Exemple: "com.example.portal.fo.web.portlets.GeneriquePortlet" → "GeneriquePortlet"
         let class_name = import_path
             .split('.')
-            .last()
+            .next_back()
             .unwrap_or(import_path)
             .to_string();
 

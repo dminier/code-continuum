@@ -115,7 +115,7 @@ fn test_real_examples_directory_analysis() {
                 class_fqn, expected_relative_path
             );
             assert!(
-                class_node.metadata.get("is_external").is_none(),
+                !class_node.metadata.contains_key("is_external"),
                 "Classe locale {} ne devrait pas être marquée externe",
                 class_fqn
             );

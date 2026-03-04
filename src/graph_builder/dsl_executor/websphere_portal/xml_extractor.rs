@@ -28,6 +28,12 @@ pub struct XmlExtractor {
     window_state_regex: Regex,
     init_param_regex: Regex,
     cache_regex: Regex,
+
+    // Inline patterns used in loops (stored to avoid regex-in-loop)
+    servlet_name_regex: Regex,
+    filter_name_regex: Regex,
+    filter_class_regex: Regex,
+    portlet_name_regex: Regex,
 }
 
 impl XmlExtractor {
@@ -53,6 +59,12 @@ impl XmlExtractor {
             window_state_regex: Regex::new(r"<window-state>\s*([^<]+)\s*</window-state>").unwrap(),
             init_param_regex: Regex::new(r"(?s)<init-param>\s*<name>\s*([^<]+)\s*</name>\s*<value>\s*([^<]+)\s*</value>\s*</init-param>").unwrap(),
             cache_regex: Regex::new(r"<expiration-cache>\s*([^<]+)\s*</expiration-cache>").unwrap(),
+
+            // Inline patterns used in loops
+            servlet_name_regex: Regex::new(r"<servlet-name>\s*([^<]+)\s*</servlet-name>").unwrap(),
+            filter_name_regex: Regex::new(r"<filter-name>\s*([^<]+)\s*</filter-name>").unwrap(),
+            filter_class_regex: Regex::new(r"<filter-class>\s*([^<]+)\s*</filter-class>").unwrap(),
+            portlet_name_regex: Regex::new(r"<portlet-name>\s*([^<]+)\s*</portlet-name>").unwrap(),
         }
     }
 
@@ -86,8 +98,7 @@ impl XmlExtractor {
                 let block = servlet_block.as_str();
 
                 // Extraire servlet-name
-                let name_regex = Regex::new(r"<servlet-name>\s*([^<]+)\s*</servlet-name>").unwrap();
-                if let Some(name_cap) = name_regex.captures(block) {
+                if let Some(name_cap) = self.servlet_name_regex.captures(block) {
                     let servlet_name = name_cap.get(1).unwrap().as_str().trim();
 
                     // Extraire servlet-class
@@ -112,8 +123,7 @@ impl XmlExtractor {
                 let block = mapping_block.as_str();
 
                 // Extraire servlet-name
-                let name_regex = Regex::new(r"<servlet-name>\s*([^<]+)\s*</servlet-name>").unwrap();
-                if let Some(name_cap) = name_regex.captures(block) {
+                if let Some(name_cap) = self.servlet_name_regex.captures(block) {
                     let servlet_name = name_cap.get(1).unwrap().as_str().trim();
                     let servlet_id = format!("servlet::{}", servlet_name);
 
@@ -151,13 +161,10 @@ impl XmlExtractor {
             if let Some(filter_block) = cap.get(1) {
                 let block = filter_block.as_str();
 
-                let name_regex = Regex::new(r"<filter-name>\s*([^<]+)\s*</filter-name>").unwrap();
-                let class_regex =
-                    Regex::new(r"<filter-class>\s*([^<]+)\s*</filter-class>").unwrap();
-
-                if let (Some(name_cap), Some(class_cap)) =
-                    (name_regex.captures(block), class_regex.captures(block))
-                {
+                if let (Some(name_cap), Some(class_cap)) = (
+                    self.filter_name_regex.captures(block),
+                    self.filter_class_regex.captures(block),
+                ) {
                     let filter_name = name_cap.get(1).unwrap().as_str().trim();
                     let filter_class = class_cap.get(1).unwrap().as_str().trim();
                     filter_names.insert(filter_name.to_string(), filter_class.to_string());
@@ -173,8 +180,7 @@ impl XmlExtractor {
             if let Some(mapping_block) = cap.get(1) {
                 let block = mapping_block.as_str();
 
-                let name_regex = Regex::new(r"<filter-name>\s*([^<]+)\s*</filter-name>").unwrap();
-                if let Some(name_cap) = name_regex.captures(block) {
+                if let Some(name_cap) = self.filter_name_regex.captures(block) {
                     let filter_name = name_cap.get(1).unwrap().as_str().trim();
 
                     // Extraire url-pattern ou servlet-name
@@ -235,8 +241,7 @@ impl XmlExtractor {
                 let block = portlet_block.as_str();
 
                 // Extraire portlet-name
-                let name_regex = Regex::new(r"<portlet-name>\s*([^<]+)\s*</portlet-name>").unwrap();
-                if let Some(name_cap) = name_regex.captures(block) {
+                if let Some(name_cap) = self.portlet_name_regex.captures(block) {
                     let portlet_name = name_cap.get(1).unwrap().as_str().trim();
                     debug!(portlet_name = portlet_name, "Found portlet-name");
 
@@ -452,6 +457,7 @@ impl XmlExtractor {
     }
 
     /// Crée une configuration Portlet
+    #[allow(clippy::too_many_arguments)]
     fn create_portlet_configuration(
         &self,
         xml_id: &str,

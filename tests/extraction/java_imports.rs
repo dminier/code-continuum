@@ -24,7 +24,7 @@ public class GeneriquePortlet extends GenericPortlet {
 }
 "#;
 
-    let mut graph = builder
+    let graph = builder
         .build_graph("java", language, source, "src/GeneriquePortlet.java")
         .expect("graph should build");
 

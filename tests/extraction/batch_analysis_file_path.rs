@@ -100,7 +100,7 @@ public class DerivedClass extends BaseClass implements BaseInterface {
         "BaseClass locale devrait avoir son propre file_path"
     );
     assert!(
-        base_class.metadata.get("is_external").is_none(),
+        !base_class.metadata.contains_key("is_external"),
         "BaseClass locale ne devrait pas être marquée externe"
     );
 
@@ -220,7 +220,7 @@ public class GeneriquePortlet extends GenericPortlet {
         "GeneriquePortlet locale devrait avoir son propre file_path"
     );
     assert!(
-        generique_portlet.metadata.get("is_external").is_none(),
+        !generique_portlet.metadata.contains_key("is_external"),
         "GeneriquePortlet locale ne devrait pas être externe"
     );
 
@@ -247,7 +247,7 @@ public class GeneriquePortlet extends GenericPortlet {
             );
 
             // Vérifier que le package est correct
-            let expected_package = class_fqn.rsplitn(2, '.').nth(1).unwrap_or("");
+            let expected_package = class_fqn.rsplit_once('.').map(|x| x.0).unwrap_or("");
             assert_eq!(
                 ext_class.metadata.get("package").map(|s| s.as_str()),
                 Some(expected_package),
@@ -282,11 +282,11 @@ public class GeneriquePortlet extends GenericPortlet {
     // Vérifier que l'un est local et l'autre externe
     let local_count = generic_portlet_nodes
         .iter()
-        .filter(|(_, n)| n.file_path != "")
+        .filter(|(_, n)| !n.file_path.is_empty())
         .count();
     let external_count = generic_portlet_nodes
         .iter()
-        .filter(|(_, n)| n.file_path == "")
+        .filter(|(_, n)| n.file_path.is_empty())
         .count();
 
     assert_eq!(local_count, 1, "Devrait avoir 1 GeneriquePortlet locale");
@@ -322,7 +322,7 @@ public class ServiceB {
     let mut unified_graph = UnifiedGraph::new();
 
     // Analyser les 2 fichiers
-    for (file_path, source) in vec![
+    for (file_path, source) in [
         ("src/ServiceA.java", file1_code),
         ("src/ServiceB.java", file2_code),
     ] {

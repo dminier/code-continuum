@@ -10,7 +10,7 @@ use crate::semantic_graph::Neo4jExporter;
 /// Récupère le chemin CODE_PATH depuis l'env var CODE_PATH ou retourne /app/data par défaut
 fn get_code_path() -> std::path::PathBuf {
     std::env::var("CODE_PATH")
-        .map(|p| std::path::PathBuf::from(p))
+        .map(std::path::PathBuf::from)
         .unwrap_or_else(|_| std::path::PathBuf::from("/app/data"))
 }
 
@@ -162,14 +162,12 @@ fn handle_list_projects() -> Value {
         Ok(entries) => {
             let mut projects = Vec::new();
 
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        if let Some(file_name) = path.file_name() {
-                            if let Some(name) = file_name.to_str() {
-                                projects.push(name.to_string());
-                            }
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    if let Some(file_name) = path.file_name() {
+                        if let Some(name) = file_name.to_str() {
+                            projects.push(name.to_string());
                         }
                     }
                 }

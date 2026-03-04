@@ -22,7 +22,7 @@ public class ServiceA {
     // Chercher field_declaration récursivement
     let mut found_fields = Vec::new();
 
-    fn find_fields(node: tree_sitter::Node, source: &str, depth: usize, found: &mut Vec<String>) {
+    fn find_fields(node: tree_sitter::Node, source: &str, _depth: usize, found: &mut Vec<String>) {
         if node.kind() == "field_declaration" {
             if let Some(decl) = node.child_by_field_name("declarator") {
                 if let Some(name) = decl.child_by_field_name("name") {
@@ -35,7 +35,7 @@ public class ServiceA {
 
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            find_fields(child, source, depth + 1, found);
+            find_fields(child, source, _depth + 1, found);
         }
     }
 

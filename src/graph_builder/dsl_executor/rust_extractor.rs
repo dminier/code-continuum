@@ -344,11 +344,18 @@ impl DslExecutor {
                         // Si le qualificateur est un type CamelCase non défini localement,
                         // il s'agit d'un appel vers une crate externe (ex: Regex::new, Vec::new).
                         // On ne crée pas d'edge pour éviter les faux positifs.
-                        let is_external_type_call = qualifier.as_deref().map(|q| {
-                            let simple = q.split("::").last().unwrap_or(q);
-                            simple.chars().next().map(|c| c.is_uppercase()).unwrap_or(false)
-                                && !local_types.contains(simple)
-                        }).unwrap_or(false);
+                        let is_external_type_call = qualifier
+                            .as_deref()
+                            .map(|q| {
+                                let simple = q.split("::").last().unwrap_or(q);
+                                simple
+                                    .chars()
+                                    .next()
+                                    .map(|c| c.is_uppercase())
+                                    .unwrap_or(false)
+                                    && !local_types.contains(simple)
+                            })
+                            .unwrap_or(false);
 
                         if !called_name.is_empty() && !is_external_type_call {
                             let mut edge_metadata = HashMap::new();

@@ -580,7 +580,10 @@ impl Neo4jExporter {
         let label_mode = env::var("NEO4J_LABEL_MODE").unwrap_or_else(|_| "both".to_string());
 
         info!("Step 3/4: Exporting nodes");
-        debug!(total = nodes_vec.len(), "Starting batch node export (project)");
+        debug!(
+            total = nodes_vec.len(),
+            "Starting batch node export (project)"
+        );
 
         for (batch_idx, chunk) in nodes_vec.chunks(BATCH_SIZE).enumerate() {
             let mut ids = Vec::new();

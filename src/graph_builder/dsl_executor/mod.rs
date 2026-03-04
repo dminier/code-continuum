@@ -1,6 +1,7 @@
 // Exécuteur DSL avec contexte hiérarchique complet
 // Génère des IDs qualifiés: package.Class.method pour éviter collisions
 
+mod cobol;
 pub mod java;
 mod javascript_extractor;
 mod rust_extractor;
@@ -167,6 +168,10 @@ impl DslExecutor {
                 let root = tree.root_node();
                 self.extract_rust(root, source, &mut graph);
             }
+            ExtractorType::Cobol => {
+                let root = tree.root_node();
+                self.extract_cobol(root, source, &mut graph);
+            }
             ExtractorType::TreeSitter => {
                 // Future implémentation: extraction générique via DSL tree-sitter
                 debug!("Extraction Tree-Sitter générique (non implémentée)");
@@ -291,7 +296,7 @@ impl DslExecutor {
             if node.kind == NodeKind::Function {
                 function_index
                     .entry(node.name.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(id.clone());
             }
         }
@@ -663,7 +668,7 @@ fn create_phantom_function(
 ) -> String {
     let phantom_class_id = class_name.to_string();
     if !graph.nodes.contains_key(&phantom_class_id) {
-        let simple = class_name.split('.').last().unwrap_or(class_name);
+        let simple = class_name.split('.').next_back().unwrap_or(class_name);
         let mut meta = HashMap::new();
         meta.insert("is_phantom".to_string(), "true".to_string());
         meta.insert("language".to_string(), "java".to_string());

@@ -13,6 +13,7 @@ tree-sitter-javascript = "0.20"
 tree-sitter-rust = "0.20"
 tree-sitter-java = "0.20"
 tree-sitter-html = "=0.20.0"
+tree-sitter-cobol = { git = "https://github.com/yutaro-sakamoto/tree-sitter-cobol", package = "tree-sitter-COBOL" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"

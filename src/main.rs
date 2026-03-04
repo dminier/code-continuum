@@ -18,10 +18,9 @@ use analysis::executor;
 use config::PackageFilter;
 
 fn print_ascii_banner() {
-    println!(
-        "\n{}",
-        r#"
-    CODE CONTINUUM 
+    print!(
+        "
+    CODE CONTINUUM
 
     Semantic Code Analysis & Knowledge Graph Extraction
     Powered by Tree-Sitter + Neo4j + Rust
@@ -52,9 +51,9 @@ fn print_ascii_banner() {
             ║  • Rust                                       ║
             ║  • JSP                                        ║
             ║  • Websphere Portal                           ║
-            ║  • And More ...                               ║                   
+            ║  • And More ...                               ║
             ╚═══════════════════════════════════════════════╝
-"#
+"
     );
 }
 
@@ -82,7 +81,7 @@ async fn main() {
         eprintln!("📡 Starting server...");
         eprintln!("📊 Semantic Code Analysis & Knowledge Graph Extraction");
         eprintln!("🔗 Connected to Neo4j for knowledge persistence");
-        eprintln!("");
+        eprintln!();
 
         mcp::run_mcp_server().await;
         return;
