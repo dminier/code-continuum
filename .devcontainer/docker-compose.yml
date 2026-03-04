@@ -9,6 +9,8 @@ services:
       - ../..:/workspaces:cached
       - cargo-cache:/usr/local/cargo
       - ~/.ssh:/root/.ssh:ro  # Mount SSH keys from host (read-only)
+      - ~/.claude:/home/vscode/.claude:cached  # Claude CLI auth & config
+      - ~/.claude.json:/home/vscode/.claude.json:ro  # Claude CLI settings (if exists)
  
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
